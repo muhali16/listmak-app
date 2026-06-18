@@ -1,0 +1,45 @@
+package controllers
+
+import (
+	"github.com/muhali16/listmak-service/internal/repository"
+	"github.com/muhali16/listmak-service/internal/services"
+	"gorm.io/gorm"
+)
+
+type Container struct {
+	UserController    UserController
+	AuthController    AuthController
+	ListmakController ListmakController
+	OrderController   OrderController
+	ShareController   ShareController
+}
+
+func InitContainer(db *gorm.DB) *Container {
+	// init repository
+	userRepo := repository.NewUserRepository(db)
+	listmakRepo := repository.NewListmakRepository(db)
+	orderRepo := repository.NewOrderRepository(db)
+	shareRepo := repository.NewShareLinkRepository(db)
+	viewShareRepo := repository.NewViewShareRepository(db)
+
+	// init service
+	userService := services.NewUserService(userRepo)
+	listmakService := services.NewListmakService(listmakRepo)
+	orderService := services.NewOrderService(orderRepo, listmakRepo)
+	shareService := services.NewShareService(shareRepo, viewShareRepo, listmakRepo)
+
+	// init controller
+	userController := NewUserController(userService)
+	authController := NewAuthController(userService)
+	listmakController := NewListmakController(listmakService)
+	orderController := NewOrderController(orderService)
+	shareController := NewShareController(shareService, orderService)
+
+	return &Container{
+		UserController:    userController,
+		AuthController:    authController,
+		ListmakController: listmakController,
+		OrderController:   orderController,
+		ShareController:   shareController,
+	}
+}
