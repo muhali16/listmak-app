@@ -13,6 +13,8 @@ import { verifyAuth, isAuthenticated } from './api/auth'
 // Views
 import LoginView from './views/LoginView.vue'
 import DashboardView from './views/DashboardView.vue'
+import TodayView from './views/TodayView.vue'
+import OrderListView from './views/OrderListView.vue'
 import ListMakInputView from './views/ListMakInputView.vue'
 import ListMakDailyView from './views/ListMakDailyView.vue'
 import ContactsView from './views/ContactsView.vue'
@@ -28,9 +30,21 @@ const routes = [
     component: LoginView, 
     meta: { hideNav: true, guest: true } 
   },
-  { 
-    path: '/dashboard', 
-    name: 'Dashboard', 
+  {
+    path: '/today',
+    name: 'Today',
+    component: TodayView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/listmak/:id(\\d+)',
+    name: 'OrderList',
+    component: OrderListView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
     component: DashboardView,
     meta: { requiresAuth: true }
   },
@@ -102,7 +116,7 @@ router.beforeEach(async (to, from, next) => {
   }
   // If route is for guests only (login) and user is authenticated
   else if (to.meta.guest && authenticated) {
-    next({ name: 'Dashboard' })
+    next({ name: 'Today' })
   }
   // Otherwise proceed
   else {

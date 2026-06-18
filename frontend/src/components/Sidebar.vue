@@ -37,7 +37,7 @@ export default {
   data() {
     return {
       navItems: [
-        { path: '/dashboard', icon: 'pi pi-home', label: 'Dashboard' },
+        { path: '/today', icon: 'pi pi-home', label: 'Hari Ini' },
         { path: '/listmak/input', icon: 'pi pi-plus-circle', label: 'Input ListMak' },
         { path: '/listmak/daily', icon: 'pi pi-calendar', label: 'Riwayat Harian' },
         { path: '/contacts', icon: 'pi pi-users', label: 'Kontak' },
