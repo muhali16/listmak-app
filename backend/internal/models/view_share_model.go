@@ -12,6 +12,10 @@ type ViewShare struct {
 	Listmak      Listmak         `gorm:"foreignKey:ListmakID" json:"listmak,omitempty"`
 	Title        string          `gorm:"type:varchar(255)" json:"title"`
 	SnapshotData json.RawMessage `gorm:"type:jsonb" json:"snapshot_data"` // Menggunakan jsonb untuk postgres atau json untuk mysql
-	CreatedBy    *uint           `json:"created_by"`
+	// IsLive distinguishes links created after the live-update change from legacy
+	// links. Default false preserves snapshot behaviour for all pre-existing rows
+	// (non-retroactive); links created from now on set it true to serve live data.
+	IsLive    bool  `gorm:"default:false" json:"is_live"`
+	CreatedBy *uint `json:"created_by"`
 	CreatedAt    time.Time       `gorm:"<-:create" json:"created_at"`
 }

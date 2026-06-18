@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -281,6 +282,10 @@ func (sc *shareController) GetViewShare(c *gin.Context) {
 	viewId := c.Param("viewId")
 	viewShare, err := sc.shareService.GetViewShare(viewId)
 	if err != nil {
+		if errors.Is(err, services.ErrListmakUnavailable) {
+			utils.SendResponse(c, http.StatusNotFound, false, "listmak tidak tersedia", nil)
+			return
+		}
 		utils.SendResponse(c, http.StatusNotFound, false, "View link not found", nil)
 		return
 	}
