@@ -1,11 +1,16 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"github.com/muhali16/listmak-service/internal/models"
 	"github.com/muhali16/listmak-service/internal/repository"
 )
+
+// ErrNoOrdersMatched is returned when a bulk paid-status update finds no order
+// matching the given name in the listmak. Callers should map this to HTTP 404.
+var ErrNoOrdersMatched = errors.New("no orders matched the given name")
 
 type OrderService interface {
 	GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error)
@@ -13,6 +18,7 @@ type OrderService interface {
 	CreateOrdersBulk(listmakId uint, orders []models.Order) (int, []models.Order, error)
 	UpdateOrder(order models.Order) (models.Order, error)
 	UpdateOrderPaidStatus(id uint, isPaid bool) (models.Order, error)
+	UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error)
 	DeleteOrder(id uint) error
 }
 
@@ -98,6 +104,24 @@ func (s *orderService) UpdateOrderPaidStatus(id uint, isPaid bool) (models.Order
 
 	s.updateListmakTotals(order.ListmakID)
 	return order, nil
+}
+
+// UpdateOrdersPaidByName toggles is_paid for all orders belonging to a name in
+// a listmak (used for the per-person "Lunas" toggle in the UI). The row updates
+// happen all-or-nothing in the repository's transaction; the listmak totals are
+// recalculated once after the bulk update succeeds. Returns ErrNoOrdersMatched
+// if no order matches the name.
+func (s *orderService) UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error) {
+	count, err := s.orderRepo.UpdateOrdersPaidByName(listmakId, name, isPaid)
+	if err != nil {
+		return 0, err
+	}
+	if count == 0 {
+		return 0, ErrNoOrdersMatched
+	}
+
+	s.updateListmakTotals(listmakId)
+	return count, nil
 }
 
 func (s *orderService) DeleteOrder(id uint) error {

@@ -24,6 +24,7 @@ func ListmakRoutes(r *gin.RouterGroup, lc controllers.ListmakController, oc cont
 		listmakGroup.GET("/:id/orders", oc.GetOrders)
 		listmakGroup.POST("/:id/orders", oc.CreateOrder)
 		listmakGroup.POST("/:id/orders/bulk", oc.CreateOrdersBulk)
+		listmakGroup.PATCH("/:id/orders/paid", oc.UpdateOrdersPaidByName)
 	}
 
 	// Group orders requiring auth

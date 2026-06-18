@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/muhali16/listmak-service/internal/models"
@@ -16,6 +18,7 @@ type OrderController interface {
 	CreateOrdersBulk(c *gin.Context)
 	UpdateOrder(c *gin.Context)
 	UpdateOrderPaid(c *gin.Context)
+	UpdateOrdersPaidByName(c *gin.Context)
 	DeleteOrder(c *gin.Context)
 }
 
@@ -209,6 +212,49 @@ func (oc *orderController) UpdateOrderPaid(c *gin.Context) {
 		return
 	}
 	utils.SendResponse(c, http.StatusOK, true, "Status bayar berhasil diupdate", updated)
+}
+
+// UpdateOrdersPaidByName godoc
+// @Summary      Bulk update payment status by name
+// @Description  Set is_paid for all orders belonging to a name within a listmak (name matched case-insensitively, trimmed). All-or-nothing.
+// @Tags         orders
+// @Accept       json
+// @Produce      json
+// @Param        id       path      int                     true  "Listmak ID"
+// @Param        payload  body      map[string]interface{}  true  "Name and payment status"
+// @Success      200      {object}  utils.Response
+// @Failure      400      {object}  utils.Response
+// @Failure      404      {object}  utils.Response
+// @Failure      500      {object}  utils.Response
+// @Router       /listmaks/{id}/orders/paid [patch]
+func (oc *orderController) UpdateOrdersPaidByName(c *gin.Context) {
+	listmakId, _ := strconv.Atoi(c.Param("id"))
+	var payload struct {
+		Name   string `json:"name"`
+		IsPaid bool   `json:"is_paid"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid payload", nil)
+		return
+	}
+	if strings.TrimSpace(payload.Name) == "" {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Nama pemesan wajib diisi", nil)
+		return
+	}
+
+	count, err := oc.orderService.UpdateOrdersPaidByName(uint(listmakId), payload.Name, payload.IsPaid)
+	if err != nil {
+		if errors.Is(err, services.ErrNoOrdersMatched) {
+			utils.SendResponse(c, http.StatusNotFound, false, "Tidak ada pesanan dengan nama tersebut di listmak ini", nil)
+			return
+		}
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to update status", nil)
+		return
+	}
+
+	utils.SendResponse(c, http.StatusOK, true, "Status bayar berhasil diupdate", gin.H{
+		"updated_count": count,
+	})
 }
 
 // DeleteOrder godoc
