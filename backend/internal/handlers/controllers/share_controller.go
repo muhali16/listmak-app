@@ -17,6 +17,7 @@ type ShareController interface {
 	GetShareLink(c *gin.Context)
 	DeleteShareLink(c *gin.Context)
 	SubmitOrderViaShare(c *gin.Context)
+	GetOrdersViaShare(c *gin.Context)
 
 	CreateViewShare(c *gin.Context)
 	GetViewShare(c *gin.Context)
@@ -194,6 +195,43 @@ func (sc *shareController) SubmitOrderViaShare(c *gin.Context) {
 	}
 
 	utils.SendResponse(c, http.StatusOK, true, "Pesanan berhasil ditambahkan", gin.H{"added_count": count})
+}
+
+// GetOrdersViaShare godoc
+// @Summary      Get orders via share link
+// @Description  Get the list of orders for a listmak via public share link
+// @Tags         share-links
+// @Accept       json
+// @Produce      json
+// @Param        shareId  path      string  true  "Share ID"
+// @Success      200      {object}  utils.Response
+// @Failure      404      {object}  utils.Response
+// @Failure      410      {object}  utils.Response
+// @Router       /share-links/{shareId}/orders [get]
+func (sc *shareController) GetOrdersViaShare(c *gin.Context) {
+	shareId := c.Param("shareId")
+
+	share, err := sc.shareService.GetShareLink(shareId)
+	if err != nil {
+		if err.Error() == "EXPIRED" {
+			c.JSON(http.StatusGone, gin.H{
+				"success": false,
+				"error":   "EXPIRED",
+				"message": "Waktu input pesanan telah berakhir",
+			})
+			return
+		}
+		utils.SendResponse(c, http.StatusNotFound, false, "Share link tidak ditemukan", nil)
+		return
+	}
+
+	orders, err := sc.orderService.GetOrdersByListmakId(share.ListmakID, nil, "")
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal mengambil data pesanan", nil)
+		return
+	}
+
+	utils.SendResponse(c, http.StatusOK, true, "OK", orders)
 }
 
 // CreateViewShare godoc

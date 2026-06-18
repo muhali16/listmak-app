@@ -65,6 +65,13 @@ export default {
   },
 
   // Public access
+  getShareOrders(shareId) {
+    return apiCall(`/share-links/${shareId}/orders`, {
+      method: 'GET'
+    })
+  },
+
+  // Public access
   submitShareOrder(shareId, data) {
     return apiCall(`/share-links/${shareId}/orders`, {
       method: 'POST',

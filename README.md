@@ -1,4 +1,18 @@
-# Listmak Service API
+# Listmak App
+
+Full-stack collaborative ordering/list management app.
+
+## Structure
+
+```
+listmak-app/
+├── backend/    # Go REST API (Gin + GORM + PostgreSQL)
+└── frontend/   # Vue 3 SPA (Vite)
+```
+
+---
+
+# Backend
 
 REST API Server untuk manajemen Listmak, dibangun dengan Go (Gin Framework), PostgreSQL, dan GORM.
 
@@ -58,19 +72,7 @@ FRONTEND_URL=http://localhost:5173
 ### 3. Setup Database
 
 ```bash
-# Login ke PostgreSQL
-psql -U postgres
-```
-
-```sql
-CREATE DATABASE listmak_service;
-\q
-```
-
-Atau gunakan `listmak_service.sql` untuk membuat schema sekaligus:
-
-```bash
-psql -U postgres -d listmak_service -f listmak_service.sql
+psql -U postgres -c "CREATE DATABASE listmak_service;"
 ```
 
 ### 4. Install Dependencies
@@ -98,6 +100,24 @@ Swagger documentation tersedia di:
 ```
 http://localhost:9001/swagger/index.html
 ```
+
+---
+
+# Frontend
+
+Vue 3 SPA dibangun dengan Vite.
+
+## Quick Start
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Dev server berjalan di `http://localhost:5173`
+
+Lihat [Vue 3 script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) untuk informasi lebih lanjut.
 
 ---
 
@@ -366,7 +386,6 @@ sudo systemctl start listmak-service
 /var/www/listmak-service/
 ├── .env
 ├── listmak-service
-├── logs.db                 # SQLite request logs
 ├── cmd/
 │   └── api/
 │       └── main.go

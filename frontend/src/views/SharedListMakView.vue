@@ -72,97 +72,139 @@
         </p>
       </div>
 
-      <!-- Input Mode Tabs -->
-      <div class="input-tabs">
-        <button 
-          class="input-tab" 
-          :class="{ active: inputMode === 'single' }"
-          @click="inputMode = 'single'"
-        >
-          <i class="pi pi-user"></i>
-          <span>Satu Pesanan</span>
-        </button>
-        <button 
-          class="input-tab" 
-          :class="{ active: inputMode === 'bulk' }"
-          @click="inputMode = 'bulk'"
-        >
-          <i class="pi pi-users"></i>
-          <span>Banyak Pesanan</span>
-        </button>
-      </div>
+      <!-- Two-column layout: Form | Orders -->
+      <div class="content-grid">
+        <!-- Left column: form -->
+        <div class="form-column">
+          <!-- Input Mode Tabs -->
+          <div class="input-tabs">
+            <button
+              class="input-tab"
+              :class="{ active: inputMode === 'single' }"
+              @click="inputMode = 'single'"
+            >
+              <i class="pi pi-user"></i>
+              <span>Satu Pesanan</span>
+            </button>
+            <button
+              class="input-tab"
+              :class="{ active: inputMode === 'bulk' }"
+              @click="inputMode = 'bulk'"
+            >
+              <i class="pi pi-users"></i>
+              <span>Banyak Pesanan</span>
+            </button>
+          </div>
 
-      <!-- Single Input Form -->
-      <div v-if="inputMode === 'single'" class="order-form">
-        <div class="form-group">
-          <label>Nama Anda</label>
-          <input 
-            type="text" 
-            v-model="orderForm.name" 
-            placeholder="Masukkan nama Anda"
-            class="form-input"
-          />
-        </div>
-        <div class="form-group">
-          <label>Pesanan</label>
-          <textarea 
-            v-model="orderForm.order" 
-            placeholder="Contoh: Nasi Ayam Madura PAHA"
-            rows="3"
-            class="form-textarea"
-          ></textarea>
-        </div>
-        <Button 
-          @click="submitOrder" 
-          label="Kirim Pesanan"
-          icon="pi pi-send"
-          class="submit-btn"
-          :loading="submitting"
-          :disabled="!orderForm.name.trim() || !orderForm.order.trim()"
-        />
-      </div>
+          <!-- Single Input Form -->
+          <div v-if="inputMode === 'single'" class="order-form">
+            <div class="form-group">
+              <label>Nama Anda</label>
+              <input
+                type="text"
+                v-model="orderForm.name"
+                placeholder="Masukkan nama Anda"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <label>Pesanan</label>
+              <textarea
+                v-model="orderForm.order"
+                placeholder="Contoh: Nasi Ayam Madura PAHA"
+                rows="3"
+                class="form-textarea"
+              ></textarea>
+            </div>
+            <Button
+              @click="submitOrder"
+              label="Kirim Pesanan"
+              icon="pi pi-send"
+              class="submit-btn"
+              :loading="submitting"
+              :disabled="!orderForm.name.trim() || !orderForm.order.trim()"
+            />
+          </div>
 
-      <!-- Bulk Input Form -->
-      <div v-else class="order-form">
-        <div class="form-group">
-          <label>Daftar Pesanan</label>
-          <p class="form-hint">Format: <strong>Nama: Pesanan</strong> (satu per baris)</p>
-          <textarea 
-            v-model="bulkInput" 
-            placeholder="Budi: Nasi Ayam Madura PAHA
+          <!-- Bulk Input Form -->
+          <div v-else class="order-form">
+            <div class="form-group">
+              <label>Daftar Pesanan</label>
+              <p class="form-hint">Format: <strong>Nama: Pesanan</strong> (satu per baris)</p>
+              <textarea
+                v-model="bulkInput"
+                placeholder="Budi: Nasi Ayam Madura PAHA
 Ani: Nasi Ayam Madura DADA
 Citra: Nasi Goreng Spesial"
-            rows="8"
-            class="form-textarea bulk-textarea"
-          ></textarea>
-        </div>
-        <div class="bulk-preview" v-if="parsedBulkOrders.length > 0">
-          <p class="preview-label">Preview: {{ parsedBulkOrders.length }} pesanan</p>
-          <ul class="preview-list">
-            <li v-for="(order, index) in parsedBulkOrders.slice(0, 5)" :key="index">
-              <strong>{{ order.name }}</strong>: {{ order.order }}
-            </li>
-            <li v-if="parsedBulkOrders.length > 5" class="preview-more">
-              ... dan {{ parsedBulkOrders.length - 5 }} pesanan lainnya
-            </li>
-          </ul>
-        </div>
-        <Button 
-          @click="submitBulkOrders" 
-          :label="`Kirim ${parsedBulkOrders.length} Pesanan`"
-          icon="pi pi-send"
-          class="submit-btn"
-          :loading="submitting"
-          :disabled="parsedBulkOrders.length === 0"
-        />
-      </div>
+                rows="8"
+                class="form-textarea bulk-textarea"
+              ></textarea>
+            </div>
+            <div class="bulk-preview" v-if="parsedBulkOrders.length > 0">
+              <p class="preview-label">Preview: {{ parsedBulkOrders.length }} pesanan</p>
+              <ul class="preview-list">
+                <li v-for="(order, index) in parsedBulkOrders.slice(0, 5)" :key="index">
+                  <strong>{{ order.name }}</strong>: {{ order.order }}
+                </li>
+                <li v-if="parsedBulkOrders.length > 5" class="preview-more">
+                  ... dan {{ parsedBulkOrders.length - 5 }} pesanan lainnya
+                </li>
+              </ul>
+            </div>
+            <Button
+              @click="submitBulkOrders"
+              :label="`Kirim ${parsedBulkOrders.length} Pesanan`"
+              icon="pi pi-send"
+              class="submit-btn"
+              :loading="submitting"
+              :disabled="parsedBulkOrders.length === 0"
+            />
+          </div>
 
-      <!-- Success Message -->
-      <div v-if="orderSubmitted" class="success-card">
-        <i class="pi pi-check-circle"></i>
-        <div class="success-content">
-          <h3>Pesanan Terkirim!</h3>
-          <p>{{ successMessage }}</p>
+          <!-- Success Message -->
+          <div v-if="orderSubmitted" class="success-card">
+            <i class="pi pi-check-circle"></i>
+            <div class="success-content">
+              <h3>Pesanan Terkirim!</h3>
+              <p>{{ successMessage }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: orders list -->
+        <div class="orders-column">
+          <div class="orders-section">
+            <div class="orders-header">
+              <h3 class="orders-title">
+                <i class="pi pi-list"></i>
+                Daftar Pesanan
+                <span v-if="orders.length > 0" class="orders-count">{{ orders.length }}</span>
+              </h3>
+              <button class="refresh-btn" @click="loadOrders" :disabled="loadingOrders">
+                <i class="pi" :class="loadingOrders ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+              </button>
+            </div>
+
+            <div v-if="loadingOrders && orders.length === 0" class="orders-loading">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Memuat pesanan...</span>
+            </div>
+
+            <div v-else-if="orders.length === 0" class="orders-empty">
+              <i class="pi pi-inbox"></i>
+              <p>Belum ada pesanan masuk</p>
+            </div>
+
+            <ul v-else class="orders-list">
+              <li v-for="(order, index) in orders" :key="order.id" class="order-item">
+                <span class="order-number">{{ index + 1 }}</span>
+                <div class="order-info">
+                  <span class="order-name">{{ order.name }}</span>
+                  <span class="order-detail">{{ order.order_detail }}</span>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -203,7 +245,9 @@ export default {
       inputMode: 'single',
       bulkInput: '',
       successMessage: '',
-      expiredNow: false // Tracks if expired during user session
+      expiredNow: false, // Tracks if expired during user session
+      orders: [],
+      loadingOrders: false
     }
   },
   computed: {
@@ -261,6 +305,7 @@ export default {
             this.expiredNow = true
           } else {
              this.startCountdown()
+             this.loadOrders()
           }
         } else {
            this.notFound = true
@@ -285,6 +330,20 @@ export default {
         }
       } finally {
         this.loading = false
+      }
+    },
+    async loadOrders() {
+      this.loadingOrders = true
+      try {
+        const response = await share.getShareOrders(this.shareId)
+        if (response.success) {
+          this.orders = response.data || []
+        }
+      } catch (error) {
+        // Silently fail — orders list is a secondary display
+        console.error('Failed to load orders:', error)
+      } finally {
+        this.loadingOrders = false
       }
     },
     startCountdown() {
@@ -357,6 +416,7 @@ export default {
             this.orderSubmitted = true
             this.successMessage = 'Pesanan Anda telah berhasil ditambahkan ke ListMak.'
             this.orderForm = { name: '', order: '' }
+            this.loadOrders()
 
             this.$toast.add({
                 severity: 'success',
@@ -406,6 +466,7 @@ export default {
             this.orderSubmitted = true
             this.successMessage = `${addedCount} pesanan telah berhasil ditambahkan ke ListMak.`
             this.bulkInput = ''
+            this.loadOrders()
 
             this.$toast.add({
                 severity: 'success',
@@ -535,8 +596,33 @@ export default {
 
 /* Input State */
 .input-state {
-  max-width: 480px;
+  max-width: 960px;
   margin: 0 auto;
+}
+
+/* Two-column grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+.orders-column .orders-section {
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+@media (max-width: 640px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .orders-column .orders-section {
+    max-height: none;
+  }
 }
 
 .shared-header {
@@ -816,5 +902,129 @@ export default {
 .preview-more {
   font-style: italic;
   color: #64748b !important;
+}
+
+/* Orders Section */
+.orders-section {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.orders-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.orders-title i {
+  color: #3b82f6;
+  font-size: 1rem;
+}
+
+.orders-count {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+}
+
+.refresh-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #64748b;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.orders-loading,
+.orders-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.orders-empty i {
+  font-size: 2rem;
+}
+
+.orders-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.order-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+}
+
+.order-number {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.order-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.order-detail {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  word-break: break-word;
 }
 </style>

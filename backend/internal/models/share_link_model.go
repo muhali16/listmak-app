@@ -6,7 +6,7 @@ import (
 
 type ShareLink struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	ShareID   string    `gorm:"type:varchar(20);uniqueIndex;not null" json:"share_id"`
+	ShareID   string    `gorm:"type:varchar(20);unique;not null" json:"share_id"`
 	ListmakID uint      `gorm:"not null;index" json:"listmak_id"`
 	Listmak   Listmak   `gorm:"foreignKey:ListmakID" json:"listmak,omitempty"`
 	Title     string    `gorm:"type:varchar(255)" json:"title"`

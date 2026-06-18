@@ -22,6 +22,8 @@ func ShareRoutes(r *gin.RouterGroup, sc controllers.ShareController) {
 		// Important: Conflict with auth routes? No, paths differ.
 		// GET /share-links/:shareId -> Public
 		shareLinks.GET("/:shareId", sc.GetShareLink)
+		// GET /share-links/:shareId/orders -> Public
+		shareLinks.GET("/:shareId/orders", sc.GetOrdersViaShare)
 		// POST /share-links/:shareId/orders -> Public
 		shareLinks.POST("/:shareId/orders", sc.SubmitOrderViaShare)
 	}

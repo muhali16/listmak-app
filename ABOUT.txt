@@ -1,0 +1,259 @@
+LISTMAK
+=======
+
+Listmak adalah aplikasi web kolaboratif untuk membuat dan mengelola daftar
+pesanan (order list) secara harian. Cocok dipakai untuk mencatat pesanan
+kelompok, seperti order makanan bareng, belanja bersama, atau keperluan lain
+yang melibatkan banyak orang.
+
+
+FITUR UTAMA
+-----------
+
+1. MANAJEMEN LISTMAK
+   - Buat daftar pesanan baru berdasarkan tanggal
+   - Lihat dan kelola listmak per hari (daily view)
+   - Update dan hapus listmak yang sudah ada
+
+2. MANAJEMEN ORDER
+   - Tambah item pesanan satu per satu
+   - Tambah banyak pesanan sekaligus (bulk input)
+   - Update detail pesanan (nama, harga, jumlah, dll.)
+   - Tandai pesanan sebagai sudah dibayar (paid/unpaid)
+   - Hapus pesanan dari daftar
+
+3. BERBAGI LISTMAK (SHARE)
+   - Bagikan link ke orang lain agar mereka bisa submit pesanan sendiri
+     (share link — bisa diakses tanpa login)
+   - Bagikan link hanya-baca agar orang lain bisa lihat daftar pesanan
+     tanpa bisa mengubahnya (view link — bisa diakses tanpa login)
+   - Kelola dan hapus link berbagi yang sudah dibuat
+
+4. AUTENTIKASI
+   - Login menggunakan akun Google (Google OAuth)
+   - Sesi dikelola via JWT yang disimpan sebagai httpOnly cookie
+   - Halaman berbagi bisa diakses publik tanpa perlu login
+
+5. TAMPILAN & UX
+   - Antarmuka responsif: sidebar untuk desktop, bottom navigation untuk mobile
+   - Mode gelap (dark mode) yang bisa diaktifkan
+   - Notifikasi toast untuk feedback aksi pengguna
+   - Deteksi koneksi offline dengan modal peringatan
+
+
+TECH STACK
+----------
+
+Backend  : Go (Gin + GORM), PostgreSQL, SQLite (request logs), Swagger
+Frontend : Vue 3 (Vite + PrimeVue + TanStack Query), Tailwind CSS
+Auth     : Google OAuth 2.0 + JWT
+
+
+CARA JALANKAN
+-------------
+
+Backend:
+  cd backend && air              # dengan hot-reload
+  cd backend && go run ./cmd/api # langsung
+
+Frontend:
+  cd frontend && npm install
+  cd frontend && npm run dev
+
+Backend jalan di  http://localhost:9001
+Frontend jalan di http://localhost:5173
+Swagger UI di     http://localhost:9001/swagger/index.html
+
+
+STRUKTUR FOLDER
+---------------
+
+listmak-app/
+├── ABOUT.txt
+├── CLAUDE.md
+├── backend/
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go              # entry point
+│   ├── docs/                        # auto-generated Swagger
+│   │   ├── docs.go
+│   │   ├── swagger.json
+│   │   └── swagger.yaml
+│   ├── internal/
+│   │   ├── configs/
+│   │   │   ├── database.go          # koneksi PostgreSQL
+│   │   │   └── migration.go         # auto-migrate GORM
+│   │   ├── handlers/
+│   │   │   ├── controllers/
+│   │   │   │   ├── container.go     # dependency injection (repo→service→controller)
+│   │   │   │   ├── auth_controller.go
+│   │   │   │   ├── listmak_controller.go
+│   │   │   │   ├── order_controller.go
+│   │   │   │   ├── share_controller.go
+│   │   │   │   ├── user_controller.go
+│   │   │   │   └── log_controller.go
+│   │   │   └── middlewares/
+│   │   │       ├── auth_middleware.go   # validasi JWT cookie
+│   │   │       ├── cors_middleware.go
+│   │   │       └── log_middleware.go    # inject RequestID & StartTime
+│   │   ├── models/
+│   │   │   ├── listmak_model.go
+│   │   │   ├── order_model.go
+│   │   │   ├── share_link_model.go
+│   │   │   ├── view_share_model.go
+│   │   │   ├── user_model.go
+│   │   │   ├── log_model.go             # SQLite SystemLog
+│   │   │   └── registry.go
+│   │   ├── repository/
+│   │   │   ├── listmak_repository.go
+│   │   │   ├── order_repository.go
+│   │   │   ├── share_repository.go
+│   │   │   ├── user_repository.go
+│   │   │   └── log_repository.go
+│   │   ├── routes/
+│   │   │   ├── routes.go                # titik registrasi semua route
+│   │   │   ├── auth_route.go
+│   │   │   ├── listmak_routes.go
+│   │   │   ├── share_routes.go
+│   │   │   ├── user_routes.go
+│   │   │   └── log_routes.go
+│   │   └── services/
+│   │       ├── listmak_service.go
+│   │       ├── order_service.go
+│   │       ├── share_service.go
+│   │       ├── user_service.go
+│   │       └── log_service.go
+│   └── pkg/
+│       └── utils/
+│           ├── jwt.go                   # generate & parse JWT
+│           ├── random.go                # generate share/view ID
+│           └── response.go              # SendResponse() wrapper
+│
+└── frontend/
+    ├── index.html
+    ├── vite.config.js
+    ├── tailwind.config.js
+    ├── src/
+    │   ├── main.js                      # app init, router, plugin setup
+    │   ├── App.vue
+    │   ├── style.css
+    │   ├── api/
+    │   │   ├── auth.js                  # Google OAuth + localStorage user cache
+    │   │   ├── listmak.js               # API calls listmak & order
+    │   │   ├── share.js                 # API calls share link & view share
+    │   │   └── index.js
+    │   ├── components/
+    │   │   ├── Sidebar.vue              # navigasi desktop
+    │   │   ├── BottomNav.vue            # navigasi mobile
+    │   │   └── OfflineModal.vue
+    │   └── views/
+    │       ├── LoginView.vue
+    │       ├── DashboardView.vue
+    │       ├── ListMakInputView.vue     # form buat/edit listmak & order
+    │       ├── ListMakDailyView.vue     # tampilan listmak harian
+    │       ├── SharedListMakView.vue    # halaman publik submit pesanan
+    │       ├── ViewListMakView.vue      # halaman publik lihat pesanan
+    │       ├── ContactsView.vue
+    │       └── ProfileView.vue
+    └── database/
+        └── schema.sql
+
+
+SKEMA DATABASE (PostgreSQL)
+---------------------------
+
+Tabel-tabel berikut dikelola GORM dengan auto-migrate. Semua tabel di bawah
+(kecuali system_logs) disimpan di PostgreSQL. system_logs disimpan di SQLite
+(file logs.db).
+
+-- users
+-- Menyimpan akun yang login via Google OAuth.
+users
+  id          SERIAL PRIMARY KEY
+  google_id   VARCHAR(255) UNIQUE NOT NULL
+  email       VARCHAR(255) UNIQUE NOT NULL
+  name        VARCHAR(255) NOT NULL
+  avatar      TEXT
+  role        VARCHAR(10)  DEFAULT 'user'
+  created_at  TIMESTAMP
+  updated_at  TIMESTAMP
+  deleted_at  TIMESTAMP    (soft delete)
+
+-- listmaks
+-- Satu listmak = satu sesi/hari pengumpulan pesanan.
+listmaks
+  id            SERIAL PRIMARY KEY
+  title         VARCHAR(255)
+  date          DATE         NOT NULL  (indexed)
+  created_by    INT          REFERENCES users(id)
+  total_orders  INT          DEFAULT 0
+  total_amount  DECIMAL(12,2) DEFAULT 0
+  paid_amount   DECIMAL(12,2) DEFAULT 0
+  status        VARCHAR(20)  DEFAULT 'active'  -- 'active' | 'completed' | 'cancelled'
+  created_at    TIMESTAMP
+  updated_at    TIMESTAMP
+  deleted_at    TIMESTAMP    (soft delete)
+
+-- orders
+-- Item pesanan di dalam sebuah listmak.
+orders
+  id            SERIAL PRIMARY KEY
+  listmak_id    INT          NOT NULL  REFERENCES listmaks(id) ON DELETE CASCADE
+  name          VARCHAR(100) NOT NULL  (indexed)
+  order_detail  TEXT         NOT NULL
+  price         DECIMAL(12,2) DEFAULT 0
+  qty           INT          DEFAULT 1
+  total_price   DECIMAL(12,2) GENERATED ALWAYS AS (price * qty) STORED
+  is_paid       BOOLEAN      DEFAULT false  (indexed)
+  paid_at       TIMESTAMP    NULLABLE
+  added_via     VARCHAR(20)  DEFAULT 'parse'  -- 'parse' | 'manual' | 'sharelink'
+  added_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  updated_at    TIMESTAMP
+  deleted_at    TIMESTAMP    (soft delete)
+
+-- share_links
+-- Token berbagi yang membolehkan orang lain submit pesanan (write access, publik).
+share_links
+  id          SERIAL PRIMARY KEY
+  share_id    VARCHAR(20)  UNIQUE NOT NULL
+  listmak_id  INT          NOT NULL  REFERENCES listmaks(id)
+  title       VARCHAR(255)
+  expires_at  TIMESTAMP    NOT NULL  (indexed)
+  is_active   BOOLEAN      DEFAULT true
+  created_by  INT          REFERENCES users(id)
+  created_at  TIMESTAMP
+
+-- view_shares
+-- Token berbagi hanya-baca; menyimpan snapshot data listmak pada saat dibuat.
+view_shares
+  id             SERIAL PRIMARY KEY
+  view_id        VARCHAR(20)  UNIQUE NOT NULL
+  listmak_id     INT          NOT NULL  REFERENCES listmaks(id)
+  title          VARCHAR(255)
+  snapshot_data  JSONB        -- snapshot data listmak + orders saat link dibuat
+  created_by     INT          REFERENCES users(id)
+  created_at     TIMESTAMP
+
+-- system_logs  (SQLite — file: backend/logs.db)
+-- Telemetri setiap HTTP request yang masuk ke backend.
+system_logs
+  id           INTEGER PRIMARY KEY
+  request_id   TEXT     (indexed)  -- UUID unik per request
+  method       TEXT
+  path         TEXT
+  status_code  INTEGER
+  latency      TEXT
+  client_ip    TEXT
+  error_msg    TEXT
+  created_at   DATETIME
+
+
+RELASI ANTAR TABEL
+------------------
+
+users ──< listmaks        (users.id = listmaks.created_by)
+users ──< share_links     (users.id = share_links.created_by)
+users ──< view_shares     (users.id = view_shares.created_by)
+listmaks ──< orders       (listmaks.id = orders.listmak_id, CASCADE DELETE)
+listmaks ──< share_links  (listmaks.id = share_links.listmak_id)
+listmaks ──< view_shares  (listmaks.id = view_shares.listmak_id)
