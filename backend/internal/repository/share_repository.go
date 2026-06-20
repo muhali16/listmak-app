@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/muhali16/listmak-service/internal/models"
 	"gorm.io/gorm"
 )
@@ -9,6 +11,7 @@ type ShareLinkRepository interface {
 	CreateShareLink(shareLink models.ShareLink) (models.ShareLink, error)
 	GetShareLinkByShareId(shareId string) (models.ShareLink, error)
 	DeleteShareLink(id uint) error
+	GetActiveShareLinkByListmakId(listmakId uint) (*models.ShareLink, error)
 }
 
 type shareLinkRepository struct {
@@ -45,11 +48,28 @@ func (r *shareLinkRepository) DeleteShareLink(id uint) error {
 	return r.db.Delete(&models.ShareLink{}, id).Error
 }
 
+func (r *shareLinkRepository) GetActiveShareLinkByListmakId(listmakId uint) (*models.ShareLink, error) {
+	var shareLink models.ShareLink
+	err := r.db.
+		Where("listmak_id = ? AND is_active = true AND expires_at > NOW()", listmakId).
+		Order("created_at DESC").
+		Limit(1).
+		First(&shareLink).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &shareLink, nil
+}
+
 // ------
 
 type ViewShareRepository interface {
 	CreateViewShare(viewShare models.ViewShare) (models.ViewShare, error)
 	GetViewShareByViewId(viewId string) (models.ViewShare, error)
+	GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error)
 }
 
 type viewShareRepository struct {
@@ -75,4 +95,20 @@ func (r *viewShareRepository) GetViewShareByViewId(viewId string) (models.ViewSh
 		return models.ViewShare{}, err
 	}
 	return viewShare, nil
+}
+
+func (r *viewShareRepository) GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error) {
+	var viewShare models.ViewShare
+	err := r.db.
+		Where("listmak_id = ?", listmakId).
+		Order("created_at DESC").
+		Limit(1).
+		First(&viewShare).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &viewShare, nil
 }
