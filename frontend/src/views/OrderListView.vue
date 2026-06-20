@@ -54,9 +54,9 @@
                 v-if="activeSharesLoaded && (activeShareLink || activeViewShare)"
                 class="active-links-card"
             >
-                <span class="active-links-label">🔗 Link aktif</span>
+                <span class="active-links-label"><i class="pi pi-link"></i> Link aktif</span>
                 <div v-if="activeShareLink" class="active-link-row">
-                    <span class="active-link-icon">✏️</span>
+                    <i class="active-link-icon pi pi-pencil"></i>
                     <span class="active-link-text">Isi pesanan · {{ shareLinkExpiryLabel }}</span>
                     <div class="active-link-actions">
                         <button
@@ -76,7 +76,7 @@
                     </div>
                 </div>
                 <div v-if="activeViewShare" class="active-link-row">
-                    <span class="active-link-icon">👁️</span>
+                    <i class="active-link-icon pi pi-eye"></i>
                     <span class="active-link-text">Lihat daftar</span>
                     <div class="active-link-actions">
                         <button
@@ -341,7 +341,7 @@
 
                 <!-- Section A: Isi pesanan -->
                 <div class="share-section">
-                    <p class="share-section-label">✏️ Karyawan isi pesanan sendiri</p>
+                    <p class="share-section-label"><i class="pi pi-pencil"></i> Karyawan isi pesanan sendiri</p>
                     <div v-if="activeShareLink && !forceNew" class="existing-link-box">
                         <span class="existing-link-url">{{ shareLinkUrl }}</span>
                         <span class="existing-link-meta">{{ shareLinkExpiryLabel }}</span>
@@ -366,7 +366,7 @@
 
                 <!-- Section B: Lihat daftar -->
                 <div class="share-section">
-                    <p class="share-section-label">👁️ Lihat daftar pesanan</p>
+                    <p class="share-section-label"><i class="pi pi-eye"></i> Lihat daftar pesanan</p>
                     <div v-if="activeViewShare" class="existing-link-box">
                         <span class="existing-link-url">{{ viewShareUrl }}</span>
                         <div class="existing-link-btns">
@@ -390,7 +390,7 @@
 
                 <!-- Section C: Salin teks -->
                 <div class="share-section">
-                    <p class="share-section-label">📋 Daftar pesanan</p>
+                    <p class="share-section-label"><i class="pi pi-list"></i> Daftar pesanan</p>
                     <button class="mode-btn" @click="copyOrderText">
                         <i class="pi pi-copy"></i>
                         <span class="mode-btn-label">Salin daftar pesanan</span>
@@ -2482,16 +2482,19 @@ export default {
 
 /* ── Share modal sections ── */
 .share-section {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .share-section-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
     color: #64748b;
-    margin: 0 0 0.375rem;
+    margin: 0 0 0.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
 }
 
 .existing-link-box {
@@ -2570,29 +2573,35 @@ export default {
     background: rgba(30, 41, 59, 0.6);
     border: 1px solid rgba(99, 179, 237, 0.15);
     border-radius: 0.875rem;
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
     margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.625rem;
 }
 
 .active-links-label {
-    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     color: #63b3ed;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    margin-bottom: 0.125rem;
 }
 
 .active-link-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.625rem;
 }
 
 .active-link-icon {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
+    color: #64748b;
+    flex-shrink: 0;
 }
 
 .active-link-text {
