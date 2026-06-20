@@ -22,7 +22,7 @@
         <span class="stats-label">Halaman {{ page }}</span>
       </div>
 
-      <div class="logs-table-wrap">
+      <div v-if="logs.length > 0" class="logs-table-wrap">
         <table class="logs-table">
           <thead>
             <tr>
@@ -50,16 +50,15 @@
           </tbody>
         </table>
       </div>
-
-      <div v-if="logs.length === 0" class="state-block">
+      <div v-else class="state-block">
         <p>Belum ada AI logs.</p>
       </div>
 
-      <div class="pagination">
+      <div v-if="logs.length > 0" class="pagination">
         <button class="page-btn" :disabled="page <= 1" @click="changePage(page - 1)">
           <i class="pi pi-chevron-left"></i> Sebelumnya
         </button>
-        <button class="page-btn" :disabled="logs.length < 50" @click="changePage(page + 1)">
+        <button class="page-btn" :disabled="page * 50 >= total" @click="changePage(page + 1)">
           Berikutnya <i class="pi pi-chevron-right"></i>
         </button>
       </div>
@@ -98,10 +97,9 @@ export default {
       this.error = ''
       try {
         const res = await admin.getAILogs(this.page)
-        if (res.success && res.data) {
-          this.logs = res.data.logs || []
-          this.total = res.data.total || 0
-        }
+        if (!res.success) throw new Error(res.message || 'Gagal memuat logs.')
+        this.logs = res.data?.logs || []
+        this.total = res.data?.total || 0
       } catch (err) {
         this.error = err.message || 'Gagal memuat logs.'
       } finally {
