@@ -405,6 +405,63 @@
                 </button>
             </div>
 
+            <!-- Expiry picker -->
+            <div v-else-if="shareMode === 'expiry'" class="sheet-section">
+                <div class="sheet-nav">
+                    <button class="sheet-back-btn" @click="shareMode = 'choose'; forceNew = false">
+                        <i class="pi pi-arrow-left"></i>
+                    </button>
+                    <h2 class="sheet-title">Batas waktu link</h2>
+                </div>
+
+                <p class="share-subtitle">Link akan kedaluwarsa setelah waktu yang kamu pilih.</p>
+
+                <div class="expiry-chips">
+                    <button
+                        v-for="opt in expiryOptions"
+                        :key="opt.value"
+                        class="expiry-chip"
+                        :class="{ 'expiry-chip--active': selectedExpiry === opt.value }"
+                        @click="selectedExpiry = opt.value; customExpiryDate = ''"
+                    >
+                        {{ opt.label }}
+                    </button>
+                    <button
+                        class="expiry-chip"
+                        :class="{ 'expiry-chip--active': selectedExpiry === 'custom' }"
+                        @click="selectedExpiry = 'custom'"
+                    >
+                        Pilih sendiri
+                    </button>
+                </div>
+
+                <div v-if="selectedExpiry === 'custom'" class="form-group" style="margin-top: 0.75rem">
+                    <label class="form-label">Tanggal & jam kedaluwarsa</label>
+                    <input
+                        v-model="customExpiryDate"
+                        type="datetime-local"
+                        class="form-input"
+                        :min="minCustomExpiry"
+                    />
+                </div>
+
+                <p v-if="shareError" class="form-error">{{ shareError }}</p>
+
+                <button
+                    class="submit-btn"
+                    style="margin-top: 1rem"
+                    :disabled="shareLoading || (selectedExpiry === 'custom' && !customExpiryDate)"
+                    @click="createInputLink"
+                >
+                    <i v-if="shareLoading" class="pi pi-spin pi-spinner"></i>
+                    <span>{{ shareLoading ? 'Bikin link...' : 'Buat link' }}</span>
+                </button>
+
+                <button class="sheet-cancel-btn" style="margin-top: 0.75rem" @click="closeShareModal">
+                    Nanti dulu
+                </button>
+            </div>
+
             <!-- Result -->
             <div
                 v-else-if="shareMode === 'result'"
@@ -1293,14 +1350,29 @@ export default {
             this.shareLoading = true;
             this.shareError = "";
             try {
-                const expiresAt = new Date(
-                    Date.now() +
-                        7 * 24 * 60 * 60 * 1000,
-                ).toISOString();
+                let expiresAt;
+                if (this.selectedExpiry === "custom") {
+                    expiresAt = new Date(
+                        this.customExpiryDate,
+                    ).toISOString();
+                } else {
+                    const daysMap = {
+                        "1d": 1,
+                        "3d": 3,
+                        "7d": 7,
+                        "30d": 30,
+                    };
+                    const days =
+                        daysMap[this.selectedExpiry] || 7;
+                    expiresAt = new Date(
+                        Date.now() +
+                            days * 24 * 60 * 60 * 1000,
+                    ).toISOString();
+                }
+
                 const res =
                     await share.createShareLink({
-                        listmak_id:
-                            this.listmakId,
+                        listmak_id: this.listmakId,
                         title: this.listmakTitle,
                         expires_at: expiresAt,
                     });
@@ -1311,6 +1383,8 @@ export default {
                     type: "input",
                 };
                 this.shareMode = "result";
+                this.forceNew = false;
+                this.loadActiveShares();
             } catch (err) {
                 this.shareError =
                     err.message ||
@@ -2370,6 +2444,36 @@ export default {
 
 .new-link-btn:hover {
     color: #94a3b8;
+}
+
+/* ── Expiry chips ── */
+.expiry-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.expiry-chip {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.875rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.expiry-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.expiry-chip--active {
+    background: rgba(99, 179, 237, 0.15);
+    border-color: rgba(99, 179, 237, 0.4);
+    color: #63b3ed;
+    font-weight: 600;
 }
 
 /* ── Active links section ── */
