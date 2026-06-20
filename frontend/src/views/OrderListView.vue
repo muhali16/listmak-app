@@ -80,6 +80,24 @@
                 </div>
             </div>
 
+            <!-- Vendor scan / group toggle -->
+            <button
+                class="vendor-scan-btn"
+                :class="{ 'vendor-scan-btn--active': groupMode === 'vendor' }"
+                :disabled="scanningVendors"
+                @click="scanVendors"
+            >
+                <i v-if="scanningVendors" class="pi pi-spin pi-spinner"></i>
+                <i v-else class="pi pi-map-marker"></i>
+                <span>{{
+                    scanningVendors
+                        ? 'Mendeteksi lokasi...'
+                        : groupMode === 'vendor'
+                        ? 'Kembali ke nama pemesan'
+                        : 'Kelompokkan per lokasi'
+                }}</span>
+            </button>
+
             <!-- Add order — full-width, explicit label -->
             <button
                 class="add-btn"
@@ -102,7 +120,7 @@
 
             <!-- Empty -->
             <div
-                v-if="filteredGroups.length === 0"
+                v-if="(groupMode === 'name' ? filteredGroups : vendorFilteredGroups).length === 0"
                 class="state-block empty"
             >
                 <div class="empty-icon">
@@ -117,7 +135,7 @@
             <!-- Grouped list -->
             <section v-else class="groups">
                 <article
-                    v-for="group in visibleGroups"
+                    v-for="group in groupMode === 'name' ? visibleGroups : vendorFilteredGroups"
                     :key="group.key"
                     class="group-card"
                 >
@@ -141,6 +159,7 @@
                             >
                         </div>
                         <button
+                            v-if="groupMode === 'name'"
                             class="paid-btn"
                             :class="{
                                 'paid-btn--paid':
@@ -290,7 +309,7 @@
 
                 <!-- Explicit load-more — no infinite scroll -->
                 <button
-                    v-if="hasMore"
+                    v-if="groupMode === 'name' && hasMore"
                     class="load-more-btn"
                     @click="loadMore"
                 >
@@ -1028,6 +1047,10 @@ export default {
             forceNew: false,
             // search
             searchQuery: "",
+            // vendor group mode
+            groupMode: 'name',
+            scanningVendors: false,
+            scanVendorError: '',
             // vendor edit
             editingVendorId: null,
             editingVendorValue: "",
@@ -1193,6 +1216,33 @@ export default {
                 a.localeCompare(b, 'id')
             )
         },
+
+        vendorGroups() {
+            const map = new Map()
+            for (const order of this.orders) {
+                const key = order.vendor_name || ''
+                const display = order.vendor_name || 'Belum ada lokasi'
+                if (!map.has(key)) {
+                    map.set(key, { key, name: display, orders: [] })
+                }
+                map.get(key).orders.push(order)
+            }
+            return Array.from(map.values()).sort((a, b) => {
+                if (!a.key) return 1
+                if (!b.key) return -1
+                return a.name.localeCompare(b.name, 'id')
+            })
+        },
+
+        vendorFilteredGroups() {
+            if (!this.searchQuery.trim()) return this.vendorGroups
+            const q = this.searchQuery.trim().toLowerCase()
+            return this.vendorGroups.filter(
+                g =>
+                    g.name.toLowerCase().includes(q) ||
+                    g.orders.some(o => o.order_detail.toLowerCase().includes(q))
+            )
+        },
     },
 
     watch: {
@@ -1215,6 +1265,32 @@ export default {
         cancelEditVendor() {
             this.editingVendorId = null;
             this.editingVendorValue = "";
+        },
+
+        async scanVendors() {
+            if (this.groupMode === 'vendor' && !this.scanningVendors) {
+                this.groupMode = 'name'
+                return
+            }
+            this.scanningVendors = true
+            this.scanVendorError = ''
+            try {
+                const res = await listmak.scanVendors(this.listmakId)
+                if (res.success && res.data) {
+                    this.orders = Array.isArray(res.data) ? res.data : []
+                }
+                this.groupMode = 'vendor'
+            } catch (err) {
+                this.scanVendorError = err.message || 'Gagal scan vendor.'
+                this.$toast.add({
+                    severity: 'error',
+                    summary: 'Gagal scan lokasi',
+                    detail: this.scanVendorError,
+                    life: 3000
+                })
+            } finally {
+                this.scanningVendors = false
+            }
         },
 
         async saveVendor(order) {
@@ -1896,6 +1972,40 @@ export default {
 .add-btn:hover {
     opacity: 0.95;
     transform: translateY(-1px);
+}
+
+/* Vendor scan toggle button */
+.vendor-scan-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 0.875rem;
+    color: #818cf8;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.vendor-scan-btn:hover:not(:disabled) {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.vendor-scan-btn--active {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.45);
+}
+
+.vendor-scan-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* Groups */

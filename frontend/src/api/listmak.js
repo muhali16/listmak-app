@@ -128,5 +128,11 @@ export default {
       method: 'PATCH',
       body: { vendor_name: vendorName }
     })
+  },
+
+  scanVendors(listmakId) {
+    return apiCall(`/listmaks/${listmakId}/scan-vendors`, {
+      method: 'POST'
+    })
   }
 }
