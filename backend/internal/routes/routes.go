@@ -31,4 +31,5 @@ func Routes(r *gin.Engine) {
 	ListmakRoutes(v1, container.ListmakController, container.OrderController)
 	ShareRoutes(v1, container.ShareController)
 	LogRoutes(v1)
+	AdminRoutes(v1, container.AdminController)
 }

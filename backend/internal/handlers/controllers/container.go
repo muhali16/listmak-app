@@ -14,6 +14,7 @@ type Container struct {
 	ListmakController ListmakController
 	OrderController   OrderController
 	ShareController   ShareController
+	AdminController   AdminController
 }
 
 func InitContainer(db *gorm.DB) *Container {
