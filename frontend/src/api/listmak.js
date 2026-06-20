@@ -92,7 +92,7 @@ export default {
   addBulkOrders(listmakId, orders) {
     return apiCall(`/listmaks/${listmakId}/orders/bulk`, {
       method: 'POST',
-      body: orders
+      body: { orders, added_via: 'bulk' }
     })
   },
 
@@ -113,6 +113,13 @@ export default {
   deleteOrder(id) {
     return apiCall(`/orders/${id}`, {
       method: 'DELETE'
+    })
+  },
+
+  updateOrdersPaidByName(listmakId, name, isPaid) {
+    return apiCall(`/listmaks/${listmakId}/orders/paid`, {
+      method: 'PATCH',
+      body: { name, is_paid: isPaid }
     })
   }
 }

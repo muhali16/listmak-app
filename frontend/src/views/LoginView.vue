@@ -97,7 +97,7 @@ export default {
           })
           // Clear URL params and redirect
           window.history.replaceState({}, document.title, '/')
-          this.$router.push('/dashboard')
+          this.$router.push('/today')
         } catch (e) {
           console.error('Failed to parse user data:', e)
         }
