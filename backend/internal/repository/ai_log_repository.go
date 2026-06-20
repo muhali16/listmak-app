@@ -7,7 +7,7 @@ import (
 
 type AILogRepository interface {
 	Create(log *models.AILog) error
-	GetAll(page, limit int) ([]models.AILog, int64)
+	GetAll(page, limit int) ([]models.AILog, int64, error)
 }
 
 type aiLogRepository struct {
@@ -22,11 +22,15 @@ func (r *aiLogRepository) Create(log *models.AILog) error {
 	return r.db.Create(log).Error
 }
 
-func (r *aiLogRepository) GetAll(page, limit int) ([]models.AILog, int64) {
+func (r *aiLogRepository) GetAll(page, limit int) ([]models.AILog, int64, error) {
 	var logs []models.AILog
 	var total int64
 	offset := (page - 1) * limit
-	r.db.Model(&models.AILog{}).Count(&total)
-	r.db.Order("created_at desc").Offset(offset).Limit(limit).Find(&logs)
-	return logs, total
+	if err := r.db.Model(&models.AILog{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := r.db.Order("created_at desc").Offset(offset).Limit(limit).Find(&logs).Error; err != nil {
+		return nil, 0, err
+	}
+	return logs, total, nil
 }
