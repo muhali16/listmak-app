@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ type ShareController interface {
 	GetViewShare(c *gin.Context)
 
 	GetActiveSharesForListmak(c *gin.Context)
+	GetFoodSuggestions(c *gin.Context)
 }
 
 type shareController struct {
@@ -296,6 +298,25 @@ func (sc *shareController) GetActiveSharesForListmak(c *gin.Context) {
 		"share_link": shareLink,
 		"view_share": viewShare,
 	})
+}
+
+func (sc *shareController) GetFoodSuggestions(c *gin.Context) {
+	shareId := c.Param("shareId")
+
+	share, err := sc.shareService.GetShareLink(shareId)
+	if err != nil {
+		utils.SendResponse(c, http.StatusNotFound, false, "Share link tidak ditemukan", nil)
+		return
+	}
+
+	query := strings.TrimSpace(c.Query("q"))
+	suggestions, err := sc.orderService.GetFoodSuggestions(share.ListmakID, query)
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal mengambil saran", nil)
+		return
+	}
+
+	utils.SendResponse(c, http.StatusOK, true, "OK", suggestions)
 }
 
 // GetViewShare godoc
