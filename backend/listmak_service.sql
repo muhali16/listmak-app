@@ -108,6 +108,7 @@ CREATE TABLE view_shares (
     listmak_id BIGINT NOT NULL,
     title VARCHAR(255),
     snapshot_data JSONB,
+    is_live BOOLEAN DEFAULT false,
     created_by BIGINT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT idx_view_shares_view_id UNIQUE (view_id)

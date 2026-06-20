@@ -133,6 +133,12 @@ definitions:
         type: integer
       id:
         type: integer
+      is_live:
+        description: |-
+          IsLive distinguishes links created after the live-update change from legacy
+          links. Default false preserves snapshot behaviour for all pre-existing rows
+          (non-retroactive); links created from now on set it true to serve live data.
+        type: boolean
       listmak:
         $ref: '#/definitions/models.Listmak'
       listmak_id:

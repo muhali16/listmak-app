@@ -1609,6 +1609,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_live": {
+                    "description": "IsLive distinguishes links created after the live-update change from legacy\nlinks. Default false preserves snapshot behaviour for all pre-existing rows\n(non-retroactive); links created from now on set it true to serve live data.",
+                    "type": "boolean"
+                },
                 "listmak": {
                     "$ref": "#/definitions/models.Listmak"
                 },

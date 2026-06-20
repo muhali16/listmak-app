@@ -10,6 +10,11 @@ import (
 	"github.com/muhali16/listmak-service/pkg/utils"
 )
 
+// ErrListmakUnavailable is returned when a live view-share points at a listmak
+// that no longer exists (e.g. soft-deleted). Callers should map this to HTTP 404
+// with a clear message instead of leaking the raw GORM error as a 500.
+var ErrListmakUnavailable = errors.New("listmak unavailable")
+
 type ShareService interface {
 	CreateShareLink(listmakId uint, title string, expiresAt time.Time, userId uint) (models.ShareLink, error)
 	GetShareLink(shareId string) (models.ShareLink, error)
@@ -92,20 +97,41 @@ func (s *shareService) CreateViewShare(listmakId uint, title string, userId uint
 		ListmakID:    listmakId,
 		Title:        title,
 		SnapshotData: snapshot,
-		CreatedBy:    &userId,
+		// New links serve live data. The snapshot above is still stored as a
+		// frozen fallback, but GetViewShare overwrites it with fresh data on read.
+		IsLive:    true,
+		CreatedBy: &userId,
 	}
 
 	return s.viewShareRepo.CreateViewShare(viewShare)
 }
 
 func (s *shareService) GetViewShare(viewId string) (models.ViewShare, error) {
-	// Retrieve view share
-	// Note: Request says "Get data listmak for view (public)".
-	// If we use snapshot, we return snapshot. If we return real-time, we preload.
-	// API doc says: "Ambil data listmak untuk view".
-	// DB schema says "SnapshotData JSONB".
-	// The implementation choice depends on requirements. Usually "view share" implies read-only view of current state OR snapshot.
-	// Given "SnapshotData" exists in schema, we probably return that or merge.
-	// But `GetViewShare` just returns model. Controller will parse.
-	return s.viewShareRepo.GetViewShareByViewId(viewId)
+	viewShare, err := s.viewShareRepo.GetViewShareByViewId(viewId)
+	if err != nil {
+		return models.ViewShare{}, err
+	}
+
+	// Legacy links (is_live == false, the AutoMigrate default for every
+	// pre-existing row) keep serving their frozen snapshot exactly as before.
+	if !viewShare.IsLive {
+		return viewShare, nil
+	}
+
+	// Live links re-fetch the current listmak state and overwrite SnapshotData
+	// in-memory, so the controller and frontend see an identical response shape
+	// to the snapshot path (no changes needed downstream).
+	listmak, err := s.listmakRepo.GetListmakById(viewShare.ListmakID)
+	if err != nil {
+		// Listmak gone (e.g. soft-deleted): surface a clear 404, not a 500.
+		return models.ViewShare{}, ErrListmakUnavailable
+	}
+
+	liveSnapshot, err := json.Marshal(listmak)
+	if err != nil {
+		return models.ViewShare{}, err
+	}
+	viewShare.SnapshotData = liveSnapshot
+
+	return viewShare, nil
 }
