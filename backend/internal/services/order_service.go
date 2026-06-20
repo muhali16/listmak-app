@@ -39,7 +39,7 @@ func NewOrderService(orderRepo repository.OrderRepository, listmakRepo repositor
 }
 
 func (s *orderService) fillVendorAsync(id uint, orderDetail string) {
-	vendor, err := s.ai.ExtractVendor(orderDetail)
+	vendor, err := s.ai.ExtractVendor(orderDetail, &id)
 	if err != nil || vendor == "" {
 		return
 	}
