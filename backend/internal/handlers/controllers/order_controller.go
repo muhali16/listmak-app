@@ -20,6 +20,7 @@ type OrderController interface {
 	UpdateOrderPaid(c *gin.Context)
 	UpdateOrdersPaidByName(c *gin.Context)
 	DeleteOrder(c *gin.Context)
+	UpdateOrderVendor(c *gin.Context)
 }
 
 type orderController struct {
@@ -274,4 +275,31 @@ func (oc *orderController) DeleteOrder(c *gin.Context) {
 		return
 	}
 	utils.SendResponse(c, http.StatusOK, true, "Order deleted", nil)
+}
+
+func (oc *orderController) UpdateOrderVendor(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid order ID", nil)
+		return
+	}
+
+	var payload struct {
+		VendorName string `json:"vendor_name"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid payload", nil)
+		return
+	}
+
+	vendorName := strings.TrimSpace(payload.VendorName)
+	if err := oc.orderService.UpdateVendorName(uint(id), vendorName); err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal update vendor", nil)
+		return
+	}
+
+	utils.SendResponse(c, http.StatusOK, true, "Vendor berhasil diupdate", gin.H{
+		"id":          id,
+		"vendor_name": vendorName,
+	})
 }

@@ -33,6 +33,7 @@ func ListmakRoutes(r *gin.RouterGroup, lc controllers.ListmakController, oc cont
 	{
 		orderGroup.PUT("/:id", oc.UpdateOrder)
 		orderGroup.PATCH("/:id/paid", oc.UpdateOrderPaid)
+		orderGroup.PATCH("/:id/vendor", oc.UpdateOrderVendor)
 		orderGroup.DELETE("/:id", oc.DeleteOrder)
 	}
 }
