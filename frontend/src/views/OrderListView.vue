@@ -336,61 +336,63 @@
                 v-if="shareMode === 'choose'"
                 class="sheet-section"
             >
-                <h2 class="sheet-title">
-                    Bagikan
-                </h2>
-                <p class="share-subtitle">
-                    {{ listmakTitle }}
-                </p>
+                <h2 class="sheet-title">Bagikan</h2>
+                <p class="share-subtitle">{{ listmakTitle }}</p>
 
-                <div class="mode-buttons">
-                    <button
-                        class="mode-btn"
-                        :disabled="shareLoading"
-                        @click="createInputLink"
-                    >
-                        <i
-                            class="pi pi-pencil"
-                        ></i>
-                        <span
-                            class="mode-btn-label"
-                            >Karyawan isi pesanan sendiri</span
-                        >
-                        <span
-                            class="mode-btn-desc"
-                            >Share ke grup, nanti karyawan tinggal klik dan isi pesanannya</span
-                        >
-                    </button>
-                    <button
-                        class="mode-btn"
-                        :disabled="shareLoading"
-                        @click="createViewLink"
-                    >
-                        <i class="pi pi-eye"></i>
-                        <span
-                            class="mode-btn-label"
-                            >Lihat daftar pesanan</span
-                        >
-                        <span
-                            class="mode-btn-desc"
-                            >Buat yang cuma mau pantau daftar pesanan, tanpa bisa ubah apa-apa</span
-                        >
+                <!-- Section A: Isi pesanan -->
+                <div class="share-section">
+                    <p class="share-section-label">✏️ Karyawan isi pesanan sendiri</p>
+                    <div v-if="activeShareLink && !forceNew" class="existing-link-box">
+                        <span class="existing-link-url">{{ shareLinkUrl }}</span>
+                        <span class="existing-link-meta">{{ shareLinkExpiryLabel }}</span>
+                        <div class="existing-link-btns">
+                            <button class="submit-btn" style="flex:1" @click="copyLinkUrl(shareLinkUrl)">
+                                <i class="pi pi-copy"></i> Salin
+                            </button>
+                            <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('input', shareLinkUrl)">
+                                <i class="pi pi-whatsapp"></i> WA
+                            </button>
+                        </div>
+                        <button class="new-link-btn" @click="forceNew = true; shareMode = 'expiry'">
+                            Buat link baru
+                        </button>
+                    </div>
+                    <button v-else class="mode-btn" :disabled="shareLoading" @click="shareMode = 'expiry'">
+                        <i class="pi pi-pencil"></i>
+                        <span class="mode-btn-label">Buat link isi pesanan</span>
+                        <span class="mode-btn-desc">Share ke grup, karyawan tinggal klik dan isi pesanannya</span>
                     </button>
                 </div>
 
-                <p
-                    v-if="shareError"
-                    class="form-error"
-                >
-                    {{ shareError }}
-                </p>
-                <div
-                    v-if="shareLoading"
-                    class="share-loading"
-                >
-                    <i
-                        class="pi pi-spin pi-spinner"
-                    ></i>
+                <!-- Section B: Lihat daftar -->
+                <div class="share-section">
+                    <p class="share-section-label">👁️ Lihat daftar pesanan</p>
+                    <div v-if="activeViewShare" class="existing-link-box">
+                        <span class="existing-link-url">{{ viewShareUrl }}</span>
+                        <div class="existing-link-btns">
+                            <button class="submit-btn" style="flex:1" @click="copyLinkUrl(viewShareUrl)">
+                                <i class="pi pi-copy"></i> Salin
+                            </button>
+                            <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('view', viewShareUrl)">
+                                <i class="pi pi-whatsapp"></i> WA
+                            </button>
+                        </div>
+                        <button class="new-link-btn" @click="createViewLink">
+                            Buat link baru
+                        </button>
+                    </div>
+                    <button v-else class="mode-btn" :disabled="shareLoading" @click="createViewLink">
+                        <i class="pi pi-eye"></i>
+                        <span class="mode-btn-label">Buat link lihat daftar</span>
+                        <span class="mode-btn-desc">Buat yang cuma mau pantau daftar pesanan, tanpa bisa ubah apa-apa</span>
+                    </button>
+                </div>
+
+                <!-- Section C: Salin teks (added in Task 8) -->
+
+                <p v-if="shareError" class="form-error">{{ shareError }}</p>
+                <div v-if="shareLoading" class="share-loading">
+                    <i class="pi pi-spin pi-spinner"></i>
                     <span>Lagi bikin link...</span>
                 </div>
 
@@ -1335,6 +1337,7 @@ export default {
                     type: "view",
                 };
                 this.shareMode = "result";
+                this.loadActiveShares();
             } catch (err) {
                 this.shareError =
                     err.message ||
@@ -2312,6 +2315,61 @@ export default {
 .delete-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ── Share modal sections ── */
+.share-section {
+    margin-bottom: 0.75rem;
+}
+
+.share-section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 0 0 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.existing-link-box {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.existing-link-url {
+    font-size: 0.75rem;
+    color: #63b3ed;
+    word-break: break-all;
+}
+
+.existing-link-meta {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.existing-link-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.new-link-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.8125rem;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    text-align: left;
+}
+
+.new-link-btn:hover {
+    color: #94a3b8;
 }
 
 /* ── Active links section ── */
