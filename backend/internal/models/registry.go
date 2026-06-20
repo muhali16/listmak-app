@@ -8,5 +8,6 @@ func ModelRegistry() []interface{} {
 		&Order{},
 		&ShareLink{},
 		&ViewShare{},
+		&AILog{},
 	}
 }
