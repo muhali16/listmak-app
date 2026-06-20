@@ -10,7 +10,7 @@ import (
 type ListmakRepository interface {
 	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error)
 	GetListmakById(id uint) (models.Listmak, error)
-	GetListmakByDate(date time.Time) ([]models.Listmak, error)
+	GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error)
 	CreateListmak(listmak models.Listmak) (models.Listmak, error)
 	UpdateListmak(listmak models.Listmak) (models.Listmak, error)
 	DeleteListmak(id uint) error
@@ -61,11 +61,10 @@ func (r *listmakRepository) GetListmakById(id uint) (models.Listmak, error) {
 	return listmak, nil
 }
 
-func (r *listmakRepository) GetListmakByDate(date time.Time) ([]models.Listmak, error) {
+func (r *listmakRepository) GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error) {
 	var listmaks []models.Listmak
-	// Format to 2006-01-02 to match date only
 	dateStr := date.Format("2006-01-02")
-	if err := r.db.Preload("Orders").Preload("User").Preload("ShareLinks", "is_active = ? AND expires_at > ?", true, time.Now()).Where("DATE(date) = ?", dateStr).Find(&listmaks).Error; err != nil {
+	if err := r.db.Preload("Orders").Preload("User").Preload("ShareLinks", "is_active = ? AND expires_at > ?", true, time.Now()).Where("DATE(date) = ? AND created_by = ?", dateStr, userId).Find(&listmaks).Error; err != nil {
 		return nil, err
 	}
 	return listmaks, nil

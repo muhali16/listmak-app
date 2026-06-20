@@ -120,7 +120,10 @@ func (lc *listmakController) GetListmakByDate(c *gin.Context) {
 		return
 	}
 
-	data, err := lc.listmakService.GetListmakByDate(date)
+	userIdStr := c.MustGet("user_id").(string)
+	userIdUint64, _ := strconv.ParseUint(userIdStr, 10, 64)
+
+	data, err := lc.listmakService.GetListmakByDate(date, uint(userIdUint64))
 	if err != nil {
 		utils.SendResponse(c, http.StatusNotFound, false, "Listmak not found", nil)
 		return

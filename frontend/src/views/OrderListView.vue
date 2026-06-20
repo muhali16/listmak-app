@@ -341,7 +341,6 @@
 
                 <!-- Section A: Isi pesanan -->
                 <div class="share-section">
-                    <p class="share-section-label"><i class="pi pi-pencil"></i> Karyawan isi pesanan sendiri</p>
                     <div v-if="activeShareLink && !forceNew" class="existing-link-box">
                         <span class="existing-link-url">{{ shareLinkUrl }}</span>
                         <span class="existing-link-meta">{{ shareLinkExpiryLabel }}</span>
@@ -366,7 +365,6 @@
 
                 <!-- Section B: Lihat daftar -->
                 <div class="share-section">
-                    <p class="share-section-label"><i class="pi pi-eye"></i> Lihat daftar pesanan</p>
                     <div v-if="activeViewShare" class="existing-link-box">
                         <span class="existing-link-url">{{ viewShareUrl }}</span>
                         <div class="existing-link-btns">
@@ -390,7 +388,6 @@
 
                 <!-- Section C: Salin teks -->
                 <div class="share-section">
-                    <p class="share-section-label"><i class="pi pi-list"></i> Daftar pesanan</p>
                     <button class="mode-btn" @click="copyOrderText">
                         <i class="pi pi-copy"></i>
                         <span class="mode-btn-label">Salin daftar pesanan</span>

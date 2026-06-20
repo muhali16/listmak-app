@@ -10,7 +10,7 @@ import (
 type ListmakService interface {
 	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error)
 	GetListmakById(id uint) (models.Listmak, error)
-	GetListmakByDate(date time.Time) ([]models.Listmak, error)
+	GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error)
 	CreateListmak(listmak models.Listmak) (models.Listmak, error)
 	UpdateListmak(listmak models.Listmak) (models.Listmak, error)
 	DeleteListmak(id uint) error
@@ -40,8 +40,8 @@ func (s *listmakService) GetListmakById(id uint) (models.Listmak, error) {
 	return s.listmakRepo.GetListmakById(id)
 }
 
-func (s *listmakService) GetListmakByDate(date time.Time) ([]models.Listmak, error) {
-	return s.listmakRepo.GetListmakByDate(date)
+func (s *listmakService) GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error) {
+	return s.listmakRepo.GetListmakByDate(date, userId)
 }
 
 func (s *listmakService) CreateListmak(listmak models.Listmak) (models.Listmak, error) {
