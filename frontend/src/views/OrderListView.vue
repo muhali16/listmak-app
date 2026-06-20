@@ -80,23 +80,26 @@
                 </div>
             </div>
 
-            <!-- Vendor scan / group toggle -->
-            <button
-                class="vendor-scan-btn"
-                :class="{ 'vendor-scan-btn--active': groupMode === 'vendor' }"
-                :disabled="scanningVendors"
-                @click="scanVendors"
-            >
-                <i v-if="scanningVendors" class="pi pi-spin pi-spinner"></i>
-                <i v-else class="pi pi-map-marker"></i>
-                <span>{{
-                    scanningVendors
-                        ? 'Mendeteksi lokasi...'
-                        : groupMode === 'vendor'
-                        ? 'Kembali ke nama pemesan'
-                        : 'Kelompokkan per lokasi'
-                }}</span>
-            </button>
+            <!-- Vendor action row: AI scan + manual group toggle -->
+            <div class="vendor-action-row">
+                <button
+                    class="vendor-ai-btn"
+                    :disabled="scanningVendors"
+                    @click="scanVendors"
+                >
+                    <i v-if="scanningVendors" class="pi pi-spin pi-spinner"></i>
+                    <i v-else class="pi pi-microchip-ai"></i>
+                    <span>{{ scanningVendors ? 'Mendeteksi...' : 'Scan AI' }}</span>
+                </button>
+                <button
+                    class="vendor-group-btn"
+                    :class="{ 'vendor-group-btn--active': groupMode === 'vendor' }"
+                    @click="toggleVendorGroup"
+                >
+                    <i class="pi pi-map-marker"></i>
+                    <span>{{ groupMode === 'vendor' ? 'Per nama' : 'Per lokasi' }}</span>
+                </button>
+            </div>
 
             <!-- Add order — full-width, explicit label -->
             <button
@@ -1267,11 +1270,11 @@ export default {
             this.editingVendorValue = "";
         },
 
+        toggleVendorGroup() {
+            this.groupMode = this.groupMode === 'vendor' ? 'name' : 'vendor'
+        },
+
         async scanVendors() {
-            if (this.groupMode === 'vendor' && !this.scanningVendors) {
-                this.groupMode = 'name'
-                return
-            }
             this.scanningVendors = true
             this.scanVendorError = ''
             try {
@@ -1974,38 +1977,59 @@ export default {
     transform: translateY(-1px);
 }
 
-/* Vendor scan toggle button */
-.vendor-scan-btn {
-    width: 100%;
+/* Vendor action row */
+.vendor-action-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.vendor-ai-btn,
+.vendor-group-btn {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.75rem;
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    gap: 0.4rem;
+    padding: 0.7rem 0.75rem;
     border-radius: 0.875rem;
-    color: #818cf8;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 }
 
-.vendor-scan-btn:hover:not(:disabled) {
+.vendor-ai-btn {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    color: #c084fc;
+}
+
+.vendor-ai-btn:hover:not(:disabled) {
+    background: rgba(168, 85, 247, 0.18);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.vendor-ai-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.vendor-group-btn {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: #818cf8;
+}
+
+.vendor-group-btn:hover {
     background: rgba(99, 102, 241, 0.18);
     border-color: rgba(99, 102, 241, 0.4);
 }
 
-.vendor-scan-btn--active {
-    background: rgba(99, 102, 241, 0.18);
-    border-color: rgba(99, 102, 241, 0.45);
-}
-
-.vendor-scan-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.vendor-group-btn--active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #a5b4fc;
 }
 
 /* Groups */
