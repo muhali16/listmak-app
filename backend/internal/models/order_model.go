@@ -16,6 +16,7 @@ type Order struct {
 	TotalPrice  float64        `gorm:"type:decimal(12,2);generated:always as (price * qty) stored;<-:false" json:"total_price"` // Generated column supported in postgres/mysql 5.7+
 	IsPaid      bool           `gorm:"default:false;index" json:"is_paid"`
 	PaidAt      *time.Time     `json:"paid_at"`
+	VendorName  string         `gorm:"type:varchar(100)" json:"vendor_name"`
 	AddedVia    string         `gorm:"type:varchar(20);default:'parse'" json:"added_via"` // 'parse', 'manual', 'sharelink'
 	AddedAt     time.Time      `gorm:"default:CURRENT_TIMESTAMP;<-:create" json:"added_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`

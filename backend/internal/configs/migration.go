@@ -17,6 +17,9 @@ func AutoMigrate(db *gorm.DB) {
 		db.Exec(`ALTER TABLE users DROP CONSTRAINT IF EXISTS idx_users_email`)
 	}
 
+	db.Exec(`CREATE EXTENSION IF NOT EXISTS pg_trgm`)
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_orders_detail_trgm ON orders USING GIN (order_detail gin_trgm_ops) WHERE deleted_at IS NULL`)
+
 	if err := db.AutoMigrate(models.ModelRegistry()...); err != nil {
 		log.Fatalf("AutoMigrate failed: %v", err)
 	}
