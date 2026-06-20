@@ -22,6 +22,7 @@ type OrderService interface {
 	DeleteOrder(id uint) error
 	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
 	UpdateVendorName(id uint, vendorName string) error
+	ScanVendors(listmakID uint) ([]models.Order, error)
 }
 
 type orderService struct {
@@ -152,6 +153,24 @@ func (s *orderService) GetFoodSuggestions(listmakID uint, query string) ([]strin
 
 func (s *orderService) UpdateVendorName(id uint, vendorName string) error {
 	return s.orderRepo.UpdateVendorName(id, vendorName)
+}
+
+func (s *orderService) ScanVendors(listmakID uint) ([]models.Order, error) {
+	orders, err := s.orderRepo.GetOrdersByListmakId(listmakID, nil, "")
+	if err != nil {
+		return nil, err
+	}
+	for _, o := range orders {
+		if o.VendorName != "" {
+			continue
+		}
+		vendor, err := s.ai.ExtractVendor(o.OrderDetail, &o.ID)
+		if err != nil || vendor == "" {
+			continue
+		}
+		s.orderRepo.UpdateVendorName(o.ID, vendor)
+	}
+	return s.orderRepo.GetOrdersByListmakId(listmakID, nil, "")
 }
 
 func (s *orderService) DeleteOrder(id uint) error {

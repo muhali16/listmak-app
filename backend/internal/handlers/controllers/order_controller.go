@@ -21,6 +21,7 @@ type OrderController interface {
 	UpdateOrdersPaidByName(c *gin.Context)
 	DeleteOrder(c *gin.Context)
 	UpdateOrderVendor(c *gin.Context)
+	ScanVendors(c *gin.Context)
 }
 
 type orderController struct {
@@ -302,4 +303,18 @@ func (oc *orderController) UpdateOrderVendor(c *gin.Context) {
 		"id":          id,
 		"vendor_name": vendorName,
 	})
+}
+
+func (oc *orderController) ScanVendors(c *gin.Context) {
+	listmakId, err := strconv.Atoi(c.Param("id"))
+	if err != nil || listmakId <= 0 {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid listmak ID", nil)
+		return
+	}
+	orders, err := oc.orderService.ScanVendors(uint(listmakId))
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to scan vendors", nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "Vendor scan complete", orders)
 }
