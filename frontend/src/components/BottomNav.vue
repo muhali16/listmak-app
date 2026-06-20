@@ -16,15 +16,22 @@
 <script>
 export default {
   name: 'BottomNav',
-  data() {
-    return {
-      navItems: [
+  computed: {
+    isAdmin() {
+      return JSON.parse(localStorage.getItem('user') || '{}')?.role === 'admin'
+    },
+    navItems() {
+      const items = [
         { path: '/today', icon: 'pi pi-home', label: 'Hari Ini' },
         { path: '/listmak/input', icon: 'pi pi-plus-circle', label: 'Input' },
         { path: '/listmak/daily', icon: 'pi pi-calendar', label: 'Riwayat' },
         { path: '/contacts', icon: 'pi pi-users', label: 'Kontak' },
-        { path: '/profile', icon: 'pi pi-user', label: 'Profil' }
+        { path: '/profile', icon: 'pi pi-user', label: 'Profil' },
       ]
+      if (this.isAdmin) {
+        items.push({ path: '/admin/ai-logs', icon: 'pi pi-shield', label: 'Admin' })
+      }
+      return items
     }
   },
   methods: {
