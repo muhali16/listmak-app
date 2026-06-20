@@ -32,6 +32,7 @@
               <th>Provider</th>
               <th>Latency</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -45,6 +46,11 @@
                 <span class="status-badge" :class="log.status === 'success' ? 'status-ok' : 'status-err'">
                   {{ log.status }}
                 </span>
+              </td>
+              <td>
+                <button class="detail-btn" @click="openDetail(log)">
+                  <i class="pi pi-eye"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -64,6 +70,70 @@
       </div>
     </template>
   </div>
+
+  <!-- Detail modal -->
+  <teleport to="body">
+    <div v-if="detailLog" class="detail-backdrop" @click.self="detailLog = null">
+      <div class="detail-modal">
+        <div class="detail-header">
+          <h2 class="detail-title">Log #{{ detailLog.id }}</h2>
+          <button class="detail-close" @click="detailLog = null">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-row">
+            <span class="detail-label">ID</span>
+            <span class="detail-value">{{ detailLog.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Order ID</span>
+            <span class="detail-value">{{ detailLog.order_id ?? '—' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Status</span>
+            <span class="status-badge" :class="detailLog.status === 'success' ? 'status-ok' : 'status-err'">
+              {{ detailLog.status }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Provider</span>
+            <span class="detail-value">{{ detailLog.provider }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Model</span>
+            <span class="detail-value mono">{{ detailLog.model }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Latency</span>
+            <span class="detail-value">{{ detailLog.latency_ms }}ms</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Created At</span>
+            <span class="detail-value">{{ formatTime(detailLog.created_at) }}</span>
+          </div>
+
+          <div class="detail-field">
+            <span class="detail-label">Input</span>
+            <pre v-if="isJson(detailLog.input)" class="detail-code"><code>{{ prettyJson(detailLog.input) }}</code></pre>
+            <p v-else class="detail-text">{{ detailLog.input || '—' }}</p>
+          </div>
+
+          <div class="detail-field">
+            <span class="detail-label">Output</span>
+            <pre v-if="isJson(detailLog.output)" class="detail-code"><code>{{ prettyJson(detailLog.output) }}</code></pre>
+            <p v-else class="detail-text">{{ detailLog.output || '—' }}</p>
+          </div>
+
+          <div v-if="detailLog.error_msg" class="detail-field">
+            <span class="detail-label">Error</span>
+            <p class="detail-text detail-error">{{ detailLog.error_msg }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </teleport>
 </template>
 
 <script>
@@ -78,7 +148,8 @@ export default {
       total: 0,
       page: 1,
       loading: false,
-      error: ''
+      error: '',
+      detailLog: null
     }
   },
 
@@ -123,6 +194,24 @@ export default {
     truncate(str, max) {
       if (!str) return '—'
       return str.length > max ? str.slice(0, max) + '…' : str
+    },
+
+    openDetail(log) {
+      this.detailLog = log
+    },
+
+    isJson(str) {
+      if (!str) return false
+      const s = str.trimStart()
+      return s.startsWith('{') || s.startsWith('[')
+    },
+
+    prettyJson(str) {
+      try {
+        return JSON.stringify(JSON.parse(str), null, 2)
+      } catch {
+        return str
+      }
     }
   }
 }
@@ -314,5 +403,159 @@ export default {
   color: #3b82f6;
   font-size: 0.875rem;
   cursor: pointer;
+}
+
+.detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.375rem;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.detail-btn:hover {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Detail modal */
+.detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.detail-modal {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.detail-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.detail-close {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.detail-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.detail-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.detail-row .detail-label {
+  min-width: 80px;
+}
+
+.detail-value {
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+}
+
+.detail-value.mono {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.detail-text {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+}
+
+.detail-error {
+  color: #f87171;
+}
+
+.detail-code {
+  margin: 0;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #a5b4fc;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  white-space: pre;
+}
+
+.detail-code code {
+  font-family: inherit;
 }
 </style>

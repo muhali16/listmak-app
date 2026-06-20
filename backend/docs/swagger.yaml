@@ -62,6 +62,8 @@ definitions:
         type: number
       updated_at:
         type: string
+      vendor_name:
+        type: string
     type: object
   models.ShareLink:
     properties:
@@ -423,6 +425,31 @@ paths:
       summary: Update listmak
       tags:
       - listmaks
+  /listmaks/{id}/active-shares:
+    get:
+      description: Returns the latest active share link and view share for a listmak
+        (null if none)
+      parameters:
+      - description: Listmak ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get active share links for a listmak
+      tags:
+      - share-links
   /listmaks/{id}/orders:
     get:
       consumes:

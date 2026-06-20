@@ -22,6 +22,7 @@ import ProfileView from './views/ProfileView.vue'
 import SharedListMakView from './views/SharedListMakView.vue'
 import ViewListMakView from './views/ViewListMakView.vue'
 import AdminAILogsView from './views/AdminAILogsView.vue'
+import AdminSystemLogsView from './views/AdminSystemLogsView.vue'
 
 // Router configuration
 const routes = [
@@ -89,6 +90,12 @@ const routes = [
     path: '/admin/ai-logs',
     name: 'AdminAILogs',
     component: AdminAILogsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/system-logs',
+    name: 'AdminSystemLogs',
+    component: AdminSystemLogsView,
     meta: { requiresAuth: true }
   }
 ]

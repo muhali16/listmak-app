@@ -7,13 +7,14 @@ import (
 	_ "github.com/muhali16/listmak-service/docs"
 	"github.com/muhali16/listmak-service/internal/configs"
 	"github.com/muhali16/listmak-service/internal/handlers/controllers"
+	"github.com/muhali16/listmak-service/internal/repository"
 	"github.com/muhali16/listmak-service/pkg/utils"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Routes(r *gin.Engine) {
-	container := controllers.InitContainer(configs.GetDB())
+func Routes(r *gin.Engine, systemLogRepo repository.SystemLogRepository) {
+	container := controllers.InitContainer(configs.GetDB(), systemLogRepo)
 
 	r.NoRoute(func(c *gin.Context) {
 		utils.SendResponse(c, http.StatusNotFound, false, "What you looking for?", nil)
@@ -30,6 +31,5 @@ func Routes(r *gin.Engine) {
 	AuthRoute(v1, container.AuthController)
 	ListmakRoutes(v1, container.ListmakController, container.OrderController)
 	ShareRoutes(v1, container.ShareController)
-	LogRoutes(v1)
 	AdminRoutes(v1, container.AdminController)
 }

@@ -20,6 +20,9 @@ export default {
   getAILogs(page = 1) {
     return apiCall(`/admin/ai-logs?page=${page}`)
   },
+  getSystemLogs(query = 'page=1') {
+    return apiCall(`/admin/system-logs?${query}`)
+  },
   updateUserRole(userId, role) {
     return apiCall(`/admin/users/${userId}/role`, {
       method: 'PATCH',

@@ -160,16 +160,25 @@ func (s *orderService) ScanVendors(listmakID uint) ([]models.Order, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var unscanned []models.Order
 	for _, o := range orders {
-		if o.VendorName != "" {
-			continue
+		if o.VendorName == "" {
+			unscanned = append(unscanned, o)
 		}
-		vendor, err := s.ai.ExtractVendor(o.OrderDetail, &o.ID)
-		if err != nil || vendor == "" {
-			continue
-		}
-		s.orderRepo.UpdateVendorName(o.ID, vendor)
 	}
+
+	if len(unscanned) > 0 {
+		vendors, err := s.ai.ExtractVendorsBatch(unscanned)
+		if err == nil {
+			for id, name := range vendors {
+				if name != "" {
+					s.orderRepo.UpdateVendorName(id, name)
+				}
+			}
+		}
+	}
+
 	return s.orderRepo.GetOrdersByListmakId(listmakID, nil, "")
 }
 

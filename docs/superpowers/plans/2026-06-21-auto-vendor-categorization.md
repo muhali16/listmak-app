@@ -23,15 +23,15 @@
 
 Check boxes as tasks complete. A new session can resume from the first unchecked task.
 
-- [ ] Task 1: Schema + Model — `vendor_name` column, pg_trgm
-- [ ] Task 2: AI Service — `internal/services/ai_service.go`
-- [ ] Task 3: Order Repository — `UpdateVendorName`, `GetFoodSuggestions`
-- [ ] Task 4: Order Service — AI injection, goroutine, new service methods
-- [ ] Task 5: Food Suggestions endpoint — `GET /share-links/:shareId/food-suggestions`
-- [ ] Task 6: Vendor Override endpoint — `PATCH /orders/:id/vendor`
-- [ ] Task 7: Wire DI + env vars — `container.go`, `.env`
-- [ ] Task 8: Frontend SharedListMakView — autocomplete + nudge
-- [ ] Task 9: Frontend OrderListView — vendor grouping + inline edit
+- [x] Task 1: Schema + Model — `vendor_name` column, pg_trgm
+- [x] Task 2: AI Service — `internal/services/ai_service.go`
+- [x] Task 3: Order Repository — `UpdateVendorName`, `GetFoodSuggestions`
+- [x] Task 4: Order Service — AI injection, goroutine, new service methods
+- [x] Task 5: Food Suggestions endpoint — `GET /share-links/:shareId/food-suggestions`
+- [x] Task 6: Vendor Override endpoint — `PATCH /orders/:id/vendor`
+- [x] Task 7: Wire DI + env vars — `container.go`, `.env`
+- [x] Task 8: Frontend SharedListMakView — autocomplete + nudge
+- [x] Task 9: Frontend OrderListView — vendor grouping + inline edit
 
 ---
 
@@ -44,7 +44,7 @@ Check boxes as tasks complete. A new session can resume from the first unchecked
 **Interfaces:**
 - Produces: `models.Order.VendorName string` — used by all subsequent tasks
 
-- [ ] **Step 1: Add `VendorName` to Order struct**
+- [x] **Step 1: Add `VendorName` to Order struct**
 
 In `backend/internal/models/order_model.go`, add `VendorName` after `IsPaid`/`PaidAt` and before `AddedVia`:
 
@@ -67,7 +67,7 @@ type Order struct {
 }
 ```
 
-- [ ] **Step 2: Enable pg_trgm + GIN index in migration**
+- [x] **Step 2: Enable pg_trgm + GIN index in migration**
 
 In `backend/internal/configs/migration.go`, add two `Exec` calls before `AutoMigrate`:
 
@@ -89,7 +89,7 @@ func AutoMigrate(db *gorm.DB) {
 }
 ```
 
-- [ ] **Step 3: Start server and verify migration**
+- [x] **Step 3: Start server and verify migration**
 
 ```bash
 cd backend && go run ./cmd/api
@@ -105,7 +105,7 @@ PGPASSWORD=akimusta psql -h localhost -U listmak_user -d listmak_app -c "\d orde
 
 Expected: `vendor_name | character varying(100)`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add backend/internal/models/order_model.go backend/internal/configs/migration.go
@@ -127,7 +127,7 @@ git commit -m "feat: add vendor_name to orders model, enable pg_trgm extension"
   - `services.NewFireworksAIService(apiKey, model string) AIService`
   - `services.NewNoopAIService() AIService` — used when env key is empty
 
-- [ ] **Step 1: Create `ai_service.go`**
+- [x] **Step 1: Create `ai_service.go`**
 
 Create `backend/internal/services/ai_service.go` with full content:
 
@@ -223,7 +223,7 @@ func (s *fireworksAIService) ExtractVendor(orderDetail string) (string, error) {
 }
 ```
 
-- [ ] **Step 2: Verify compilation**
+- [x] **Step 2: Verify compilation**
 
 ```bash
 cd backend && go build ./...
@@ -231,7 +231,7 @@ cd backend && go build ./...
 
 Expected: no errors (container.go not yet changed, so `NewOrderService` call there will still compile with old signature — we haven't changed the service yet).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/internal/services/ai_service.go
@@ -252,7 +252,7 @@ git commit -m "feat: add Fireworks.ai service for async vendor name extraction"
   - `OrderRepository.UpdateVendorName(id uint, vendor string) error`
   - `OrderRepository.GetFoodSuggestions(listmakID uint, query string) ([]string, error)`
 
-- [ ] **Step 1: Add two methods to `OrderRepository` interface**
+- [x] **Step 1: Add two methods to `OrderRepository` interface**
 
 In `backend/internal/repository/order_repository.go`, update the interface:
 
@@ -270,7 +270,7 @@ type OrderRepository interface {
 }
 ```
 
-- [ ] **Step 2: Implement `UpdateVendorName`**
+- [x] **Step 2: Implement `UpdateVendorName`**
 
 Add at the end of `backend/internal/repository/order_repository.go`:
 
@@ -280,7 +280,7 @@ func (r *orderRepository) UpdateVendorName(id uint, vendor string) error {
 }
 ```
 
-- [ ] **Step 3: Implement `GetFoodSuggestions`**
+- [x] **Step 3: Implement `GetFoodSuggestions`**
 
 Add after `UpdateVendorName`:
 
@@ -336,7 +336,7 @@ func (r *orderRepository) GetFoodSuggestions(listmakID uint, query string) ([]st
 }
 ```
 
-- [ ] **Step 4: Verify compilation**
+- [x] **Step 4: Verify compilation**
 
 ```bash
 cd backend && go build ./...
@@ -344,7 +344,7 @@ cd backend && go build ./...
 
 Expected: no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/internal/repository/order_repository.go
@@ -370,7 +370,7 @@ git commit -m "feat: add UpdateVendorName and GetFoodSuggestions to order reposi
   - `OrderService.GetFoodSuggestions(listmakID uint, query string) ([]string, error)`
   - `OrderService.UpdateVendorName(id uint, vendorName string) error`
 
-- [ ] **Step 1: Update `OrderService` interface**
+- [x] **Step 1: Update `OrderService` interface**
 
 In `backend/internal/services/order_service.go`, add two methods to the interface:
 
@@ -388,7 +388,7 @@ type OrderService interface {
 }
 ```
 
-- [ ] **Step 2: Update `orderService` struct + constructor**
+- [x] **Step 2: Update `orderService` struct + constructor**
 
 ```go
 type orderService struct {
@@ -406,7 +406,7 @@ func NewOrderService(orderRepo repository.OrderRepository, listmakRepo repositor
 }
 ```
 
-- [ ] **Step 3: Add private `fillVendorAsync` helper**
+- [x] **Step 3: Add private `fillVendorAsync` helper**
 
 Add before `GetOrdersByListmakId`:
 
@@ -420,7 +420,7 @@ func (s *orderService) fillVendorAsync(id uint, orderDetail string) {
 }
 ```
 
-- [ ] **Step 4: Update `CreateOrder` to spawn goroutine**
+- [x] **Step 4: Update `CreateOrder` to spawn goroutine**
 
 ```go
 func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
@@ -437,7 +437,7 @@ func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
 }
 ```
 
-- [ ] **Step 5: Update `CreateOrdersBulk` to spawn goroutine per order**
+- [x] **Step 5: Update `CreateOrdersBulk` to spawn goroutine per order**
 
 ```go
 func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (int, []models.Order, error) {
@@ -463,7 +463,7 @@ func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (
 }
 ```
 
-- [ ] **Step 6: Add `GetFoodSuggestions` and `UpdateVendorName` service methods**
+- [x] **Step 6: Add `GetFoodSuggestions` and `UpdateVendorName` service methods**
 
 ```go
 func (s *orderService) GetFoodSuggestions(listmakID uint, query string) ([]string, error) {
@@ -475,7 +475,7 @@ func (s *orderService) UpdateVendorName(id uint, vendorName string) error {
 }
 ```
 
-- [ ] **Step 7: Verify compilation**
+- [x] **Step 7: Verify compilation**
 
 ```bash
 cd backend && go build ./...
@@ -483,7 +483,7 @@ cd backend && go build ./...
 
 Expected: compilation error in `container.go` — `NewOrderService` called with 2 args, now needs 3. This is expected and fixed in Task 7.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/internal/services/order_service.go
@@ -504,7 +504,7 @@ git commit -m "feat: inject AIService into order service, add async vendor extra
 - Consumes: `orderService.GetFoodSuggestions(uint, string) ([]string, error)` (Task 4)
 - Produces: `GET /api/v1/share-links/:shareId/food-suggestions?q=<query>` → `{ success: true, data: ["string", ...] }`
 
-- [ ] **Step 1: Add `GetFoodSuggestions` to `ShareController` interface**
+- [x] **Step 1: Add `GetFoodSuggestions` to `ShareController` interface**
 
 In `backend/internal/handlers/controllers/share_controller.go`, add to the interface:
 
@@ -522,7 +522,7 @@ type ShareController interface {
 }
 ```
 
-- [ ] **Step 2: Add handler implementation**
+- [x] **Step 2: Add handler implementation**
 
 Add after `GetOrdersViaShare` method in the same file. Ensure `"strings"` is in the import block (add if not present):
 
@@ -547,7 +547,7 @@ func (sc *shareController) GetFoodSuggestions(c *gin.Context) {
 }
 ```
 
-- [ ] **Step 3: Register route**
+- [x] **Step 3: Register route**
 
 In `backend/internal/routes/share_routes.go`, add inside the public `shareLinks` block:
 
@@ -558,7 +558,7 @@ shareLinks.POST("/:shareId/orders", sc.SubmitOrderViaShare)
 shareLinks.GET("/:shareId/food-suggestions", sc.GetFoodSuggestions)
 ```
 
-- [ ] **Step 4: Verify compilation (container error expected)**
+- [x] **Step 4: Verify compilation (container error expected)**
 
 ```bash
 cd backend && go build ./...
@@ -566,7 +566,7 @@ cd backend && go build ./...
 
 Expected: only `container.go` error about `NewOrderService` argument count.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/internal/handlers/controllers/share_controller.go backend/internal/routes/share_routes.go
@@ -587,7 +587,7 @@ git commit -m "feat: add GET /share-links/:shareId/food-suggestions endpoint"
 - Consumes: `orderService.UpdateVendorName(uint, string) error` (Task 4)
 - Produces: `PATCH /api/v1/orders/:id/vendor` → `{ success: true, data: { id, vendor_name } }`
 
-- [ ] **Step 1: Add `UpdateOrderVendor` to `OrderController` interface**
+- [x] **Step 1: Add `UpdateOrderVendor` to `OrderController` interface**
 
 In `backend/internal/handlers/controllers/order_controller.go`:
 
@@ -604,7 +604,7 @@ type OrderController interface {
 }
 ```
 
-- [ ] **Step 2: Add handler implementation**
+- [x] **Step 2: Add handler implementation**
 
 Add at the end of `order_controller.go`. Ensure `"strings"` is in imports (add if not present):
 
@@ -637,7 +637,7 @@ func (oc *orderController) UpdateOrderVendor(c *gin.Context) {
 }
 ```
 
-- [ ] **Step 3: Register route**
+- [x] **Step 3: Register route**
 
 In `backend/internal/routes/listmak_routes.go`, add inside `orderGroup`:
 
@@ -652,7 +652,7 @@ orderGroup.Use(middlewares.AuthMiddleware())
 }
 ```
 
-- [ ] **Step 4: Verify compilation (container error still expected)**
+- [x] **Step 4: Verify compilation (container error still expected)**
 
 ```bash
 cd backend && go build ./...
@@ -660,7 +660,7 @@ cd backend && go build ./...
 
 Expected: only `container.go` error.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/internal/handlers/controllers/order_controller.go backend/internal/routes/listmak_routes.go
@@ -682,7 +682,7 @@ git commit -m "feat: add PATCH /orders/:id/vendor endpoint for manual vendor ove
 - Consumes: `services.NewFireworksAIService(apiKey, model string)`, `services.NewNoopAIService()` (Task 2), updated `services.NewOrderService(repo, repo, ai)` (Task 4)
 - Produces: fully wired backend, server starts clean with no compilation errors
 
-- [ ] **Step 1: Update `container.go`**
+- [x] **Step 1: Update `container.go`**
 
 Replace full content of `backend/internal/handlers/controllers/container.go`:
 
@@ -742,7 +742,7 @@ func InitContainer(db *gorm.DB) *Container {
 }
 ```
 
-- [ ] **Step 2: Add env vars to `.env`**
+- [x] **Step 2: Add env vars to `.env`**
 
 In `backend/.env`, add (use your real Fireworks.ai key):
 
@@ -751,7 +751,7 @@ FIREWORKS_API_KEY=your_fireworks_api_key_here
 FIREWORKS_MODEL=accounts/fireworks/models/llama-v3p1-8b-instruct
 ```
 
-- [ ] **Step 3: Add env vars to `.env.example`**
+- [x] **Step 3: Add env vars to `.env.example`**
 
 In `backend/.env.example`, add:
 
@@ -760,7 +760,7 @@ FIREWORKS_API_KEY=
 FIREWORKS_MODEL=accounts/fireworks/models/llama-v3p1-8b-instruct
 ```
 
-- [ ] **Step 4: Full build**
+- [x] **Step 4: Full build**
 
 ```bash
 cd backend && go build ./...
@@ -768,7 +768,7 @@ cd backend && go build ./...
 
 Expected: **no errors**.
 
-- [ ] **Step 5: Start server + test food suggestions**
+- [x] **Step 5: Start server + test food suggestions**
 
 ```bash
 cd backend && air
@@ -796,7 +796,7 @@ curl "http://localhost:9001/api/v1/share-links/<shareId>/food-suggestions"
 
 Expected: popular items array.
 
-- [ ] **Step 6: Test async vendor extraction**
+- [x] **Step 6: Test async vendor extraction**
 
 Submit an order via share link:
 
@@ -815,7 +815,7 @@ PGPASSWORD=akimusta psql -h localhost -U listmak_user -d listmak_app \
 
 Expected: `vendor_name` shows `Pak Donan` or similar.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/internal/handlers/controllers/container.go backend/.env.example
@@ -836,7 +836,7 @@ git commit -m "feat: wire Fireworks.ai AI service into DI container"
 - Consumes: `GET /share-links/:shareId/food-suggestions?q=X` → `{ data: string[] }` (Task 5)
 - Produces: autocomplete dropdown on single-mode order_detail textarea, per-order ⚠️ warning in bulk preview
 
-- [ ] **Step 1: Add `getFoodSuggestions` to share API**
+- [x] **Step 1: Add `getFoodSuggestions` to share API**
 
 In `frontend/src/api/share.js`, add inside the export default object (after `deleteShareLink`):
 
@@ -847,7 +847,7 @@ getFoodSuggestions(shareId, query = '') {
 },
 ```
 
-- [ ] **Step 2: Add suggestion state to `data()`**
+- [x] **Step 2: Add suggestion state to `data()`**
 
 In `SharedListMakView.vue` `data()`, add:
 
@@ -858,7 +858,7 @@ suggestionTimer: null,
 orderDetailNudge: false,
 ```
 
-- [ ] **Step 3: Add suggestion methods**
+- [x] **Step 3: Add suggestion methods**
 
 In the `methods` section, add:
 
@@ -909,7 +909,7 @@ selectSuggestion(item) {
 },
 ```
 
-- [ ] **Step 4: Add `bulkOrdersWithWarnings` computed**
+- [x] **Step 4: Add `bulkOrdersWithWarnings` computed**
 
 In the `computed` section of `SharedListMakView.vue`, add:
 
@@ -922,7 +922,7 @@ bulkOrdersWithWarnings() {
 },
 ```
 
-- [ ] **Step 5: Update single-mode order_detail template**
+- [x] **Step 5: Update single-mode order_detail template**
 
 Replace the existing single-mode `<div class="form-group">` block containing the order_detail textarea:
 
@@ -958,7 +958,7 @@ Replace the existing single-mode `<div class="form-group">` block containing the
 </div>
 ```
 
-- [ ] **Step 6: Update bulk preview to show location warnings**
+- [x] **Step 6: Update bulk preview to show location warnings**
 
 Find the `<ul class="bulk-preview-list">` block and update to use `bulkOrdersWithWarnings`:
 
@@ -974,7 +974,7 @@ Find the `<ul class="bulk-preview-list">` block and update to use `bulkOrdersWit
 
 Also update the submit button disabled check to use `bulkOrdersWithWarnings.length` instead of `parsedBulkOrders.length` — or keep using `parsedBulkOrders.length` (both work since they have the same length).
 
-- [ ] **Step 7: Add CSS**
+- [x] **Step 7: Add CSS**
 
 In `<style scoped>` of `SharedListMakView.vue`, add:
 
@@ -1031,7 +1031,7 @@ In `<style scoped>` of `SharedListMakView.vue`, add:
 }
 ```
 
-- [ ] **Step 8: Test in browser**
+- [x] **Step 8: Test in browser**
 
 ```bash
 cd frontend && npm run dev
@@ -1046,7 +1046,7 @@ Open a valid share link. Test:
 6. Switch to Banyak sekaligus, type `Budi: Nasi goreng` → preview shows ⚠️ Belum tulis lokasi
 7. Type `Ani: Bakso pak donan` → preview shows no warning for Ani
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/src/views/SharedListMakView.vue frontend/src/api/share.js
@@ -1068,7 +1068,7 @@ git commit -m "feat: food autocomplete and location nudge on shared order form"
 - Consumes: `PATCH /api/v1/orders/:id/vendor` (Task 6)
 - Produces: orders grouped by vendor with collapsible section headers, inline vendor edit chip per order
 
-- [ ] **Step 1: Add `updateOrderVendor` to `listmak.js` API**
+- [x] **Step 1: Add `updateOrderVendor` to `listmak.js` API**
 
 In `frontend/src/api/listmak.js`, add after `updateOrdersPaidByName`:
 
@@ -1081,7 +1081,7 @@ updateOrderVendor(orderId, vendorName) {
 },
 ```
 
-- [ ] **Step 2: Import listmak API in OrderListView**
+- [x] **Step 2: Import listmak API in OrderListView**
 
 At the top of `<script>` in `OrderListView.vue`, ensure `listmak` is imported. Find the existing import line (likely `import { listmak } from '../api'` or similar) — it should already be there since the view calls `listmak.getOrders`. If not, add:
 
@@ -1089,7 +1089,7 @@ At the top of `<script>` in `OrderListView.vue`, ensure `listmak` is imported. F
 import { listmak } from '../api'
 ```
 
-- [ ] **Step 3: Add vendor edit state to `data()`**
+- [x] **Step 3: Add vendor edit state to `data()`**
 
 In `OrderListView.vue` `data()`, add:
 
@@ -1098,7 +1098,7 @@ editingVendorId: null,
 editingVendorValue: '',
 ```
 
-- [ ] **Step 4: Add `ordersGroupedByVendor` and `existingVendors` computed**
+- [x] **Step 4: Add `ordersGroupedByVendor` and `existingVendors` computed**
 
 Identify the computed property that filters orders (look for a computed that filters by `searchQuery` — it is likely called `filteredOrders` or uses orders directly). Add after existing computeds:
 
@@ -1127,7 +1127,7 @@ existingVendors() {
 
 Note: if the filtered array is named differently (e.g. `filteredOrderGroups`), use the correct name. Check the existing computed section to find what property the template iterates over.
 
-- [ ] **Step 5: Add vendor edit methods**
+- [x] **Step 5: Add vendor edit methods**
 
 ```js
 startEditVendor(order) {
@@ -1152,7 +1152,7 @@ async saveVendor(order) {
 },
 ```
 
-- [ ] **Step 6: Update orders template to render vendor groups**
+- [x] **Step 6: Update orders template to render vendor groups**
 
 Find the section in `OrderListView.vue` that renders the orders list (the `v-for` over orders). Wrap it in vendor groups. The structure to add around the existing order card:
 
@@ -1202,7 +1202,7 @@ Find the section in `OrderListView.vue` that renders the orders list (the `v-for
 </template>
 ```
 
-- [ ] **Step 7: Add CSS**
+- [x] **Step 7: Add CSS**
 
 In `<style scoped>` of `OrderListView.vue`, add:
 
@@ -1311,7 +1311,7 @@ In `<style scoped>` of `OrderListView.vue`, add:
 }
 ```
 
-- [ ] **Step 8: Test in browser**
+- [x] **Step 8: Test in browser**
 
 ```bash
 cd frontend && npm run dev
@@ -1325,11 +1325,11 @@ Open a listmak with multiple orders (preferably listmak 2 which has varied vendo
 4. Press Escape → input closes, no change
 5. Vendor with existing names appear in datalist suggestion
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/src/views/OrderListView.vue frontend/src/api/listmak.js
-git commit -m "feat: group orders by vendor in OrderListView with inline vendor edit chip"
+git commit -m "feat: add vendor chip per order in OrderListView with inline vendor edit"
 ```
 
 ⏸️ **Semua task selesai! Lakukan review akhir bersama user.**

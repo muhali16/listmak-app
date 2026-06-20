@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/muhali16/listmak-service/internal/repository"
@@ -11,16 +12,18 @@ import (
 
 type AdminController interface {
 	GetAILogs(c *gin.Context)
+	GetSystemLogs(c *gin.Context)
 	UpdateUserRole(c *gin.Context)
 }
 
 type adminController struct {
-	aiLogRepo repository.AILogRepository
-	userRepo  repository.UserRepository
+	aiLogRepo     repository.AILogRepository
+	systemLogRepo repository.SystemLogRepository
+	userRepo      repository.UserRepository
 }
 
-func NewAdminController(aiLogRepo repository.AILogRepository, userRepo repository.UserRepository) AdminController {
-	return &adminController{aiLogRepo: aiLogRepo, userRepo: userRepo}
+func NewAdminController(aiLogRepo repository.AILogRepository, systemLogRepo repository.SystemLogRepository, userRepo repository.UserRepository) AdminController {
+	return &adminController{aiLogRepo: aiLogRepo, systemLogRepo: systemLogRepo, userRepo: userRepo}
 }
 
 func (ac *adminController) GetAILogs(c *gin.Context) {
@@ -35,6 +38,51 @@ func (ac *adminController) GetAILogs(c *gin.Context) {
 		return
 	}
 	utils.SendResponse(c, http.StatusOK, true, "AI logs retrieved", gin.H{
+		"logs":  logs,
+		"total": total,
+		"page":  page,
+	})
+}
+
+func (ac *adminController) GetSystemLogs(c *gin.Context) {
+	pageStr := c.DefaultQuery("page", "1")
+	page, _ := strconv.Atoi(pageStr)
+	if page < 1 {
+		page = 1
+	}
+
+	f := repository.SystemLogFilter{
+		RequestID: c.Query("request_id"),
+		Method:    c.Query("method"),
+	}
+
+	if sc, err := strconv.Atoi(c.Query("status")); err == nil && sc > 0 {
+		f.StatusCode = sc
+	}
+
+	// default from: 7 days ago
+	fromStr := c.Query("from")
+	toStr := c.Query("to")
+	if fromStr != "" {
+		if t, err := time.Parse(time.RFC3339, fromStr); err == nil {
+			f.From = &t
+		}
+	} else {
+		defaultFrom := time.Now().AddDate(0, 0, -7)
+		f.From = &defaultFrom
+	}
+	if toStr != "" {
+		if t, err := time.Parse(time.RFC3339, toStr); err == nil {
+			f.To = &t
+		}
+	}
+
+	logs, total, err := ac.systemLogRepo.GetAll(page, 100, f)
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to retrieve system logs", nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "System logs retrieved", gin.H{
 		"logs":  logs,
 		"total": total,
 		"page":  page,

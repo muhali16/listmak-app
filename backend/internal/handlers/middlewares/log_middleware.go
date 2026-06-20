@@ -6,15 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/muhali16/listmak-service/internal/models"
+	"github.com/muhali16/listmak-service/internal/repository"
 )
 
-func LoggerWithID() gin.HandlerFunc {
+func LoggerWithID(logRepo repository.SystemLogRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		requestID := uuid.New().String()
 
 		c.Header("X-Request-ID", requestID)
-
 		c.Set("RequestID", requestID)
 		c.Set("StartTime", start)
 		c.Next()
@@ -29,6 +29,6 @@ func LoggerWithID() gin.HandlerFunc {
 			ErrorMsg:   c.Errors.ByType(gin.ErrorTypeAny).String(),
 		}
 
-		models.DBLog.Create(&logEntry)
+		go logRepo.Create(&logEntry)
 	}
 }

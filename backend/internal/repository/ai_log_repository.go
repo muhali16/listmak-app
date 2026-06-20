@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/muhali16/listmak-service/internal/models"
 	"gorm.io/gorm"
 )
@@ -8,6 +10,7 @@ import (
 type AILogRepository interface {
 	Create(log *models.AILog) error
 	GetAll(page, limit int) ([]models.AILog, int64, error)
+	DeleteOlderThan(before time.Time) (int64, error)
 }
 
 type aiLogRepository struct {
@@ -33,4 +36,9 @@ func (r *aiLogRepository) GetAll(page, limit int) ([]models.AILog, int64, error)
 		return nil, 0, err
 	}
 	return logs, total, nil
+}
+
+func (r *aiLogRepository) DeleteOlderThan(before time.Time) (int64, error) {
+	result := r.db.Where("created_at < ?", before).Delete(&models.AILog{})
+	return result.RowsAffected, result.Error
 }

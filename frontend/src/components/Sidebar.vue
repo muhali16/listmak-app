@@ -8,8 +8,8 @@
     </div>
 
     <nav class="sidebar-nav">
-      <router-link 
-        v-for="item in navItems" 
+      <router-link
+        v-for="item in navItems"
         :key="item.path"
         :to="item.path"
         class="nav-item"
@@ -18,6 +18,29 @@
         <i :class="item.icon"></i>
         <span>{{ item.label }}</span>
       </router-link>
+
+      <!-- Admin submenu -->
+      <template v-if="isAdmin">
+        <button
+          class="nav-item nav-item--group"
+          :class="{ active: isAdminRoute }"
+          @click="adminOpen = !adminOpen"
+        >
+          <i class="pi pi-shield"></i>
+          <span>Admin</span>
+          <i class="pi nav-chevron" :class="adminOpen ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+        </button>
+        <div v-if="adminOpen" class="nav-subitems">
+          <router-link to="/admin/ai-logs" class="nav-subitem" :class="{ active: $route.path === '/admin/ai-logs' }">
+            <i class="pi pi-microchip-ai"></i>
+            <span>AI Logs</span>
+          </router-link>
+          <router-link to="/admin/system-logs" class="nav-subitem" :class="{ active: $route.path === '/admin/system-logs' }">
+            <i class="pi pi-server"></i>
+            <span>System Logs</span>
+          </router-link>
+        </div>
+      </template>
     </nav>
 
     <div class="sidebar-footer">
@@ -34,22 +57,32 @@ import { logout } from '../api/auth'
 
 export default {
   name: 'Sidebar',
+  data() {
+    return {
+      adminOpen: false
+    }
+  },
   computed: {
     isAdmin() {
       return JSON.parse(localStorage.getItem('user') || '{}')?.role === 'admin'
     },
+    isAdminRoute() {
+      return this.$route.path.startsWith('/admin')
+    },
     navItems() {
-      const items = [
+      return [
         { path: '/today', icon: 'pi pi-home', label: 'Hari Ini' },
-        { path: '/listmak/input', icon: 'pi pi-plus-circle', label: 'Input ListMak' },
         { path: '/listmak/daily', icon: 'pi pi-calendar', label: 'Riwayat' },
-        { path: '/contacts', icon: 'pi pi-users', label: 'Kontak' },
         { path: '/profile', icon: 'pi pi-user', label: 'Profil' },
       ]
-      if (this.isAdmin) {
-        items.push({ path: '/admin/ai-logs', icon: 'pi pi-shield', label: 'Admin' })
+    }
+  },
+  watch: {
+    isAdminRoute: {
+      immediate: true,
+      handler(val) {
+        if (val) this.adminOpen = true
       }
-      return items
     }
   },
   methods: {
@@ -125,6 +158,11 @@ export default {
   border-radius: 0.5rem;
   transition: all 0.2s;
   font-size: 0.875rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
 }
 
 .nav-item:hover {
@@ -135,6 +173,47 @@ export default {
 .nav-item.active {
   background: rgba(59, 130, 246, 0.15);
   color: #3b82f6;
+}
+
+.nav-chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.nav-subitems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-left: 1rem;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.625rem 0.875rem;
+  color: #64748b;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  transition: all 0.15s;
+  border-left: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.nav-subitem:hover {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-subitem.active {
+  color: #818cf8;
+  border-left-color: #818cf8;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.nav-subitem i {
+  font-size: 0.875rem;
 }
 
 .sidebar-footer {

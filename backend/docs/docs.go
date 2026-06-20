@@ -483,6 +483,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/listmaks/{id}/active-shares": {
+            "get": {
+                "description": "Returns the latest active share link and view share for a listmak (null if none)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share-links"
+                ],
+                "summary": "Get active share links for a listmak",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Listmak ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/listmaks/{id}/orders": {
             "get": {
                 "description": "Get all orders associated with a listmak",
@@ -1499,6 +1535,9 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "updated_at": {
+                    "type": "string"
+                },
+                "vendor_name": {
                     "type": "string"
                 }
             }

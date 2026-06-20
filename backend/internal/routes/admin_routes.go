@@ -11,6 +11,7 @@ func AdminRoutes(r *gin.RouterGroup, ac controllers.AdminController) {
 	admin.Use(middlewares.AuthMiddleware(), middlewares.AdminOnly())
 	{
 		admin.GET("/ai-logs", ac.GetAILogs)
+		admin.GET("/system-logs", ac.GetSystemLogs)
 		admin.PATCH("/users/:id/role", ac.UpdateUserRole)
 	}
 }

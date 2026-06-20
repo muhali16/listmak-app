@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 
 type AIService interface {
 	ExtractVendor(orderDetail string, orderID *uint) (string, error)
+	ExtractVendorsBatch(orders []models.Order) (map[uint]string, error)
 }
 
 type fireworksAIService struct {
@@ -38,6 +40,9 @@ type noopAIService struct{}
 func NewNoopAIService() AIService { return &noopAIService{} }
 
 func (n *noopAIService) ExtractVendor(_ string, _ *uint) (string, error) { return "", nil }
+func (n *noopAIService) ExtractVendorsBatch(_ []models.Order) (map[uint]string, error) {
+	return map[uint]string{}, nil
+}
 
 func (s *fireworksAIService) ExtractVendor(orderDetail string, orderID *uint) (string, error) {
 	start := time.Now()
@@ -103,6 +108,97 @@ func (s *fireworksAIService) ExtractVendor(orderDetail string, orderID *uint) (s
 	output := strings.TrimSpace(result.Choices[0].Message.Content)
 	s.writeLog(orderID, orderDetail, output, time.Since(start).Milliseconds(), "success", "")
 	return output, nil
+}
+
+func (s *fireworksAIService) ExtractVendorsBatch(orders []models.Order) (map[uint]string, error) {
+	if len(orders) == 0 {
+		return map[uint]string{}, nil
+	}
+
+	details := make([]string, len(orders))
+	for i, o := range orders {
+		details[i] = o.OrderDetail
+	}
+	detailsJSON, _ := json.Marshal(details)
+
+	prompt := fmt.Sprintf(
+		"Ekstrak nama vendor dari setiap pesanan makanan berikut.\n\n"+
+			"Aturan:\n"+
+			"1. Jika ada nama orang unik + jenis makanan (contoh: 'bakso bakar pak donan') → ambil kombinasinya: 'Bakso Bakar Pak Donan'\n"+
+			"2. Jajanan umum tanpa nama penjual (contoh: 'cilok 5 tusuk') → nama jenis saja: 'Cilok'\n"+
+			"3. Ada nama daerah/gaya masakan (contoh: 'ayam madura dada') → sertakan daerahnya: 'Ayam Madura'\n\n"+
+			"Output: JSON array string SESUAI URUTAN input, Title Case, tanpa penjelasan, tanpa markdown.\n"+
+			"Contoh input: [\"bakso bakar pak donan\",\"cilok 5 tusuk\"]\n"+
+			"Contoh output: [\"Bakso Bakar Pak Donan\",\"Cilok\"]\n\n"+
+			"Input: %s", string(detailsJSON),
+	)
+
+	reqBody, _ := json.Marshal(map[string]any{
+		"model": s.model,
+		"messages": []map[string]string{
+			{"role": "user", "content": prompt},
+		},
+		"max_tokens":       1024,
+		"temperature":      0,
+		"reasoning_effort": "none",
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.fireworks.ai/inference/v1/chat/completions", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+s.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("fireworks API %d: %s", resp.StatusCode, string(b))
+	}
+
+	var result struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	if len(result.Choices) == 0 {
+		return map[uint]string{}, nil
+	}
+
+	raw := strings.TrimSpace(result.Choices[0].Message.Content)
+	// strip markdown fences if model wraps in ```json ... ```
+	if idx := strings.Index(raw, "["); idx > 0 {
+		raw = raw[idx:]
+	}
+	if idx := strings.LastIndex(raw, "]"); idx >= 0 && idx < len(raw)-1 {
+		raw = raw[:idx+1]
+	}
+
+	var vendors []string
+	if err := json.Unmarshal([]byte(raw), &vendors); err != nil {
+		return map[uint]string{}, nil
+	}
+
+	out := make(map[uint]string, len(orders))
+	for i, o := range orders {
+		if i < len(vendors) {
+			out[o.ID] = strings.TrimSpace(vendors[i])
+		}
+	}
+	return out, nil
 }
 
 func (s *fireworksAIService) writeLog(orderID *uint, input, output string, latencyMs int64, status, errMsg string) {

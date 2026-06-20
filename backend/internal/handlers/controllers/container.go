@@ -17,7 +17,7 @@ type Container struct {
 	AdminController   AdminController
 }
 
-func InitContainer(db *gorm.DB) *Container {
+func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *Container {
 	// init repositories
 	userRepo := repository.NewUserRepository(db)
 	listmakRepo := repository.NewListmakRepository(db)
@@ -48,7 +48,7 @@ func InitContainer(db *gorm.DB) *Container {
 	listmakController := NewListmakController(listmakService)
 	orderController := NewOrderController(orderService)
 	shareController := NewShareController(shareService, orderService)
-	adminController := NewAdminController(aiLogRepo, userRepo)
+	adminController := NewAdminController(aiLogRepo, systemLogRepo, userRepo)
 
 	return &Container{
 		UserController:    userController,
