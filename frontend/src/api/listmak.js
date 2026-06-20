@@ -114,5 +114,12 @@ export default {
     return apiCall(`/orders/${id}`, {
       method: 'DELETE'
     })
+  },
+
+  updateOrdersPaidByName(listmakId, name, isPaid) {
+    return apiCall(`/listmaks/${listmakId}/orders/paid`, {
+      method: 'PATCH',
+      body: { name, is_paid: isPaid }
+    })
   }
 }
