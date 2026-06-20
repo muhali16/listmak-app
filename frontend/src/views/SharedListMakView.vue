@@ -96,15 +96,34 @@
             :disabled="submitting"
           />
         </div>
-        <div class="form-group">
+        <div class="form-group" style="position: relative;">
           <label class="form-label">Pesanan</label>
           <textarea
             v-model="singleForm.order_detail"
             class="form-textarea"
             rows="3"
-            placeholder="Contoh: Nasi Ayam Madura Paha"
+            placeholder="Contoh: Nasi Ayam Madura Paha - Warung Bu Sari"
             :disabled="submitting"
+            @input="onOrderDetailInput"
+            @focus="onOrderDetailFocus"
+            @blur="onOrderDetailBlur"
           ></textarea>
+
+          <ul v-if="showSuggestions && suggestions.length" class="suggestions-dropdown">
+            <li
+              v-for="item in suggestions"
+              :key="item"
+              class="suggestion-item"
+              @mousedown.prevent="selectSuggestion(item)"
+            >
+              {{ item }}
+            </li>
+          </ul>
+
+          <p v-if="orderDetailNudge" class="nudge-hint">
+            <i class="pi pi-info-circle"></i>
+            Tulis juga belinya dimana, contoh: Ayam Goreng - Warung Bu Sari
+          </p>
         </div>
 
         <div v-if="submitSuccess" class="success-banner">
@@ -141,9 +160,10 @@
         <div v-if="parsedBulkOrders.length > 0" class="bulk-preview">
           <p class="bulk-preview-label">{{ parsedBulkOrders.length }} pesanan terdeteksi:</p>
           <ul class="bulk-preview-list">
-            <li v-for="(o, i) in parsedBulkOrders" :key="i" class="bulk-preview-item">
+            <li v-for="(o, i) in bulkOrdersWithWarnings" :key="i" class="bulk-preview-item">
               <span class="preview-name">{{ o.name }}</span>
               <span class="preview-detail">{{ o.order_detail }}</span>
+              <span v-if="!o.hasLocation" class="location-warning">⚠️ Belum tulis lokasi</span>
             </li>
           </ul>
         </div>
@@ -222,7 +242,11 @@ export default {
       orders: [],
       loadingOrders: false,
       countdown: { hours: '00', minutes: '00', seconds: '00' },
-      countdownInterval: null
+      countdownInterval: null,
+      suggestions: [],
+      showSuggestions: false,
+      suggestionTimer: null,
+      orderDetailNudge: false
     }
   },
 
@@ -253,6 +277,12 @@ export default {
           return { name: m[1].trim(), order_detail: m[2].trim() }
         })
         .filter(Boolean)
+    },
+    bulkOrdersWithWarnings() {
+      return this.parsedBulkOrders.map(o => ({
+        ...o,
+        hasLocation: this.hasLocationHint(o.order_detail)
+      }))
     }
   },
 
@@ -265,6 +295,51 @@ export default {
   },
 
   methods: {
+    hasLocationHint(detail) {
+      const keywords = /\b(pak|bu|mas|mba|mbak|warung|resto|kedai|depot|kantin|gerobak)\b/i
+      const dashSeparator = /[-–—]/
+      return keywords.test(detail) || dashSeparator.test(detail)
+    },
+
+    async loadSuggestions(query) {
+      try {
+        const res = await share.getFoodSuggestions(this.shareId, query)
+        this.suggestions = res.data || []
+        this.showSuggestions = this.suggestions.length > 0
+      } catch {
+        this.showSuggestions = false
+      }
+    },
+
+    onOrderDetailInput() {
+      clearTimeout(this.suggestionTimer)
+      const val = this.singleForm.order_detail
+      this.orderDetailNudge = false
+      if (val.length < 2) {
+        this.showSuggestions = false
+        return
+      }
+      this.suggestionTimer = setTimeout(() => this.loadSuggestions(val), 300)
+    },
+
+    onOrderDetailFocus() {
+      if (this.singleForm.order_detail.length < 2) {
+        this.loadSuggestions('')
+      }
+    },
+
+    onOrderDetailBlur() {
+      setTimeout(() => { this.showSuggestions = false }, 200)
+      const val = this.singleForm.order_detail.trim()
+      this.orderDetailNudge = val.length > 0 && !this.hasLocationHint(val)
+    },
+
+    selectSuggestion(item) {
+      this.singleForm.order_detail = item
+      this.showSuggestions = false
+      this.orderDetailNudge = !this.hasLocationHint(item)
+    },
+
     async loadShareData() {
       try {
         const res = await share.getShareLink(this.shareId)
@@ -884,5 +959,56 @@ export default {
   font-size: 0.75rem;
   color: #94a3b8;
   overflow-wrap: anywhere;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 0.625rem;
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0;
+  z-index: 100;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.suggestion-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.suggestion-item:hover {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.nudge-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.375rem;
+}
+
+.nudge-hint i {
+  color: #60a5fa;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.location-warning {
+  font-size: 0.6875rem;
+  color: #f59e0b;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 </style>

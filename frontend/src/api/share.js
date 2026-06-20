@@ -85,6 +85,11 @@ export default {
     })
   },
 
+  getFoodSuggestions(shareId, query = '') {
+    const params = query ? `?q=${encodeURIComponent(query)}` : ''
+    return apiCall(`/share-links/${shareId}/food-suggestions${params}`, { method: 'GET' })
+  },
+
   getActiveShares(listmakId) {
     return apiCall(`/listmaks/${listmakId}/active-shares`)
   },
