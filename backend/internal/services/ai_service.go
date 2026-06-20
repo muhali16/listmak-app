@@ -43,11 +43,12 @@ func (s *fireworksAIService) ExtractVendor(orderDetail string, orderID *uint) (s
 	start := time.Now()
 
 	prompt := fmt.Sprintf(
-		"Dari pesanan makanan berikut, ekstrak nama resto atau kategori tempatnya. "+
-			"Jika ada nama tempat atau nama orang (contoh: 'pak donan', 'warung bu sari') gunakan itu. "+
-			"Jika tidak ada nama tempat eksplisit, infer dari jenis makanannya "+
-			"(contoh: 'soto daging' → 'Soto', 'dimsum' → 'Dimsum', 'ayam madura' → 'Ayam Madura'). "+
-			"Jawab HANYA nama tempatnya saja, tanpa penjelasan, tanpa tanda kutip, singkat. "+
+		"Tugas Anda adalah mengekstrak nama tempat atau kategori vendor dari pesanan makanan.\n\n"+
+			"Aturan:\n"+
+			"1. Jika ada nama orang/identitas unik yang digabung dengan jenis makanan (contoh: 'Bakso bakar pak donan', 'mie ayam bu nun'), ambil kombinasi makanan + nama tersebut menjadi 'Bakso Bakar Pak Donan' atau 'Mie Ayam Bu Nun'.\n"+
+			"2. Jika berupa jajanan umum/kaki lima tanpa nama penjual spesifik (contoh: 'Cilok 5 tusuk', 'telur gulung'), cukup ambil nama jenis makanannya saja menjadi 'Cilok' atau 'Telur Gulung'.\n"+
+			"3. Jika ada nama daerah/gaya masakan (contoh: 'ayam madura dada', 'nasi goreng madura'), ambil menjadi 'Ayam Madura' atau 'Nasi Goreng Madura'.\n\n"+
+			"Format Output: Jawab HANYA nama tempat/vendor hasil ekstraksi tersebut, singkat, gunakan huruf kapital di awal kata (Title Case), tanpa tanda kutip, dan TANPA penjelasan apapun.\n\n"+
 			"Pesanan: %s", orderDetail,
 	)
 
@@ -56,8 +57,9 @@ func (s *fireworksAIService) ExtractVendor(orderDetail string, orderID *uint) (s
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
-		"max_tokens":  30,
-		"temperature": 0,
+		"max_tokens":       30,
+		"temperature":      0,
+		"reasoning_effort": "none",
 	})
 
 	req, err := http.NewRequest("POST", "https://api.fireworks.ai/inference/v1/chat/completions", bytes.NewBuffer(reqBody))

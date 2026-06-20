@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -126,7 +127,9 @@ func (ac *authController) GoogleCallback(c *gin.Context) {
 	} else {
 		// Existing user: enforce ADMIN_EMAILS promotion on every login
 		if isAdminEmail(user.Email) && user.Role != "admin" {
-			ac.UserService.UpdateRole(user.ID, "admin")
+			if err := ac.UserService.UpdateRole(user.ID, "admin"); err != nil {
+				log.Printf("failed to persist admin role for user %d: %v", user.ID, err)
+			}
 			user.Role = "admin"
 		}
 	}
