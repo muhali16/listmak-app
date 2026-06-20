@@ -49,6 +49,54 @@
         </div>
 
         <template v-else>
+            <!-- Active links section -->
+            <div
+                v-if="activeSharesLoaded && (activeShareLink || activeViewShare)"
+                class="active-links-card"
+            >
+                <span class="active-links-label">🔗 Link aktif</span>
+                <div v-if="activeShareLink" class="active-link-row">
+                    <span class="active-link-icon">✏️</span>
+                    <span class="active-link-text">Isi pesanan · {{ shareLinkExpiryLabel }}</span>
+                    <div class="active-link-actions">
+                        <button
+                            class="active-link-btn"
+                            @click="copyLinkUrl(shareLinkUrl)"
+                            title="Salin link"
+                        >
+                            <i class="pi pi-copy"></i>
+                        </button>
+                        <button
+                            class="active-link-btn"
+                            @click="shareLinkViaWa('input', shareLinkUrl)"
+                            title="Kirim WA"
+                        >
+                            <i class="pi pi-whatsapp"></i>
+                        </button>
+                    </div>
+                </div>
+                <div v-if="activeViewShare" class="active-link-row">
+                    <span class="active-link-icon">👁️</span>
+                    <span class="active-link-text">Lihat daftar</span>
+                    <div class="active-link-actions">
+                        <button
+                            class="active-link-btn"
+                            @click="copyLinkUrl(viewShareUrl)"
+                            title="Salin link"
+                        >
+                            <i class="pi pi-copy"></i>
+                        </button>
+                        <button
+                            class="active-link-btn"
+                            @click="shareLinkViaWa('view', viewShareUrl)"
+                            title="Kirim WA"
+                        >
+                            <i class="pi pi-whatsapp"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Summary 2-column -->
             <div class="summary-card">
                 <div class="summary-item">
@@ -1195,11 +1243,41 @@ export default {
             this.$router.push("/today");
         },
 
+        buildLinkMessage(type, url) {
+            const title = this.listmakTitle;
+            return type === "input"
+                ? `Halo semua! 👋\n\nAda listmak baru nih: *${title}*\n\nSilakan isi pesanan kalian di sini ya:\n${url}\n\n_Klik linknya, masukin nama dan pesanan, selesai deh~_`
+                : `Hai! Ada listmak nih: *${title}*\n\nIni daftar pesanannya ya:\n${url}\n\n_Bisa dipantau dari sini, tapi cuma bisa lihat aja ya._`;
+        },
+        async copyLinkUrl(url) {
+            try {
+                await navigator.clipboard.writeText(url);
+                this.$toast.add({
+                    severity: "success",
+                    summary: "Link disalin!",
+                    life: 2000,
+                });
+            } catch {
+                this.$toast.add({
+                    severity: "error",
+                    summary: "Gagal menyalin",
+                    life: 2000,
+                });
+            }
+        },
+        shareLinkViaWa(type, url) {
+            window.open(
+                `https://wa.me/?text=${encodeURIComponent(this.buildLinkMessage(type, url))}`,
+                "_blank",
+            );
+        },
+
         openShare() {
             this.showShareModal = true;
             this.shareMode = "choose";
             this.shareResult = null;
             this.shareError = "";
+            this.forceNew = false;
         },
 
         closeShareModal() {
@@ -2234,5 +2312,69 @@ export default {
 .delete-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ── Active links section ── */
+.active-links-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(99, 179, 237, 0.15);
+    border-radius: 0.875rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.active-links-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #63b3ed;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.active-link-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.active-link-icon {
+    font-size: 0.9rem;
+}
+
+.active-link-text {
+    flex: 1;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.active-link-actions {
+    display: flex;
+    gap: 0.375rem;
+    flex-shrink: 0;
+}
+
+.active-link-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    color: #94a3b8;
+    padding: 0.375rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.active-link-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
 }
 </style>
