@@ -194,67 +194,96 @@
                             :key="order.id"
                             class="item-row"
                         >
-                            <div
-                                class="item-info"
-                            >
-                                <span
-                                    class="item-name"
-                                    >{{
-                                        order.order_detail
-                                    }}</span
+                            <div class="item-row-main">
+                                <div
+                                    class="item-info"
                                 >
-                                <span
-                                    v-if="
-                                        !order.price ||
-                                        order.price ===
-                                            0
-                                    "
-                                    class="item-no-price"
-                                >
-                                    <i
-                                        class="pi pi-exclamation-circle"
-                                    ></i>
-                                    harga belum
-                                    diisi
-                                </span>
-                                <span
-                                    v-else
-                                    class="item-price"
-                                >
-                                    Rp
-                                    {{
-                                        formatRupiah(
-                                            (order.price ||
-                                                0) *
-                                                (order.qty ||
-                                                    1),
-                                        )
-                                    }}
+                                    <span
+                                        class="item-name"
+                                        >{{
+                                            order.order_detail
+                                        }}</span
+                                    >
                                     <span
                                         v-if="
-                                            order.qty >
-                                            1
+                                            !order.price ||
+                                            order.price ===
+                                                0
                                         "
-                                        class="item-qty"
-                                        >{{
-                                            order.qty
-                                        }}x</span
+                                        class="item-no-price"
                                     >
-                                </span>
+                                        <i
+                                            class="pi pi-exclamation-circle"
+                                        ></i>
+                                        harga belum
+                                        diisi
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="item-price"
+                                    >
+                                        Rp
+                                        {{
+                                            formatRupiah(
+                                                (order.price ||
+                                                    0) *
+                                                    (order.qty ||
+                                                        1),
+                                            )
+                                        }}
+                                        <span
+                                            v-if="
+                                                order.qty >
+                                                1
+                                            "
+                                            class="item-qty"
+                                            >{{
+                                                order.qty
+                                            }}x</span
+                                        >
+                                    </span>
+                                </div>
+                                <button
+                                    class="edit-btn"
+                                    @click="
+                                        openEditOrder(
+                                            order,
+                                        )
+                                    "
+                                    title="Edit pesanan"
+                                >
+                                    <i
+                                        class="pi pi-pencil"
+                                    ></i>
+                                </button>
                             </div>
-                            <button
-                                class="edit-btn"
-                                @click="
-                                    openEditOrder(
-                                        order,
-                                    )
-                                "
-                                title="Edit pesanan"
-                            >
-                                <i
-                                    class="pi pi-pencil"
-                                ></i>
-                            </button>
+
+                            <div class="vendor-chip-row">
+                                <template v-if="editingVendorId === order.id">
+                                    <input
+                                        v-model="editingVendorValue"
+                                        class="vendor-edit-input"
+                                        :list="`vl-${order.id}`"
+                                        placeholder="Nama lokasi beli"
+                                        @keyup.enter="saveVendor(order)"
+                                        @keyup.escape="cancelEditVendor"
+                                    />
+                                    <datalist :id="`vl-${order.id}`">
+                                        <option v-for="v in existingVendors" :key="v" :value="v" />
+                                    </datalist>
+                                    <button class="vendor-save-btn" @click="saveVendor(order)">
+                                        <i class="pi pi-check"></i>
+                                    </button>
+                                    <button class="vendor-cancel-btn" @click="cancelEditVendor">
+                                        <i class="pi pi-times"></i>
+                                    </button>
+                                </template>
+                                <button v-else class="vendor-chip" @click="startEditVendor(order)">
+                                    <i class="pi pi-map-marker"></i>
+                                    <span>{{ order.vendor_name || 'Tambah lokasi' }}</span>
+                                    <i class="pi pi-pencil vendor-chip-edit-icon"></i>
+                                </button>
+                            </div>
                         </li>
                     </ul>
                 </article>
@@ -999,6 +1028,9 @@ export default {
             forceNew: false,
             // search
             searchQuery: "",
+            // vendor edit
+            editingVendorId: null,
+            editingVendorValue: "",
         };
     },
 
@@ -1155,6 +1187,12 @@ export default {
             const now = new Date(Date.now() + 60 * 60 * 1000);
             return now.toISOString().slice(0, 16);
         },
+
+        existingVendors() {
+            return [...new Set((this.orders || []).map(o => o.vendor_name).filter(Boolean))].sort((a, b) =>
+                a.localeCompare(b, 'id')
+            )
+        },
     },
 
     watch: {
@@ -1169,6 +1207,27 @@ export default {
     },
 
     methods: {
+        startEditVendor(order) {
+            this.editingVendorId = order.id;
+            this.editingVendorValue = order.vendor_name || "";
+        },
+
+        cancelEditVendor() {
+            this.editingVendorId = null;
+            this.editingVendorValue = "";
+        },
+
+        async saveVendor(order) {
+            const val = this.editingVendorValue.trim();
+            try {
+                await listmak.updateOrderVendor(order.id, val);
+                order.vendor_name = val;
+                this.editingVendorId = null;
+            } catch {
+                // keep editing open on failure
+            }
+        },
+
         async loadActiveShares() {
             try {
                 const res = await share.getActiveShares(
@@ -1931,15 +1990,21 @@ export default {
 
 .item-row {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
     padding: 0.625rem 1rem;
     border-bottom: 1px solid
         rgba(255, 255, 255, 0.03);
+    gap: 0.375rem;
 }
 
 .item-row:last-child {
     border-bottom: none;
+}
+
+.item-row-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .item-info {
@@ -2615,5 +2680,74 @@ export default {
 
 .search-input::-webkit-search-cancel-button {
     filter: invert(0.5);
+}
+
+/* Vendor chip */
+.vendor-chip-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.vendor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.6875rem;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+
+.vendor-chip:hover {
+    color: #94a3b8;
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.vendor-chip-edit-icon {
+    font-size: 0.55rem;
+    opacity: 0.4;
+}
+
+.vendor-edit-input {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.25rem 0.5rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 0.375rem;
+    color: #f1f5f9;
+    font-size: 0.8125rem;
+    font-family: inherit;
+}
+
+.vendor-save-btn,
+.vendor-cancel-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.vendor-save-btn {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.vendor-cancel-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #64748b;
 }
 </style>

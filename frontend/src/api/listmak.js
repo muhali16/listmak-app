@@ -121,5 +121,12 @@ export default {
       method: 'PATCH',
       body: { name, is_paid: isPaid }
     })
+  },
+
+  updateOrderVendor(orderId, vendorName) {
+    return apiCall(`/orders/${orderId}/vendor`, {
+      method: 'PATCH',
+      body: { vendor_name: vendorName }
+    })
   }
 }
