@@ -92,7 +92,7 @@ export default {
   addBulkOrders(listmakId, orders) {
     return apiCall(`/listmaks/${listmakId}/orders/bulk`, {
       method: 'POST',
-      body: orders
+      body: { orders, added_via: 'bulk' }
     })
   },
 

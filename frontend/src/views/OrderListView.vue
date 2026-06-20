@@ -111,12 +111,283 @@
     </template>
 
     <Toast position="top-center" />
+
+    <!-- Share sheet backdrop -->
+    <div v-if="showShareModal" class="sheet-backdrop" @click="closeShareModal"></div>
+
+    <!-- Share bottom sheet -->
+    <div class="bottom-sheet" :class="{ 'bottom-sheet--open': showShareModal }">
+      <div class="sheet-handle"></div>
+
+      <!-- Choose link type -->
+      <div v-if="shareMode === 'choose'" class="sheet-section">
+        <h2 class="sheet-title">Bagikan Listmak</h2>
+        <p class="share-subtitle">{{ listmakTitle }}</p>
+
+        <div class="mode-buttons">
+          <button class="mode-btn" :disabled="shareLoading" @click="createInputLink">
+            <i class="pi pi-pencil"></i>
+            <span class="mode-btn-label">Link untuk karyawan pesan sendiri</span>
+            <span class="mode-btn-desc">Karyawan bisa isi pesanan lewat link ini</span>
+          </button>
+          <button class="mode-btn" :disabled="shareLoading" @click="createViewLink">
+            <i class="pi pi-eye"></i>
+            <span class="mode-btn-label">Link untuk lihat saja</span>
+            <span class="mode-btn-desc">Karyawan hanya bisa lihat, tidak bisa edit</span>
+          </button>
+        </div>
+
+        <p v-if="shareError" class="form-error">{{ shareError }}</p>
+        <div v-if="shareLoading" class="share-loading">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Membuat link...</span>
+        </div>
+
+        <button class="sheet-cancel-btn" :disabled="shareLoading" @click="closeShareModal">Batal</button>
+      </div>
+
+      <!-- Result -->
+      <div v-else-if="shareMode === 'result'" class="sheet-section">
+        <div class="share-result-icon">
+          <i :class="shareResult.type === 'input' ? 'pi pi-pencil' : 'pi pi-eye'"></i>
+        </div>
+        <h2 class="sheet-title">Link siap dibagikan</h2>
+        <p class="share-result-type">
+          {{ shareResult.type === 'input' ? 'Link pesan sendiri' : 'Link lihat saja' }}
+          {{ shareResult.type === 'input' ? '· berlaku 7 hari' : '' }}
+        </p>
+
+        <div class="share-url-box">
+          <span class="share-url-text">{{ shareResult.url }}</span>
+        </div>
+
+        <button class="submit-btn" @click="copyShareUrl">
+          <i class="pi pi-copy"></i>
+          <span>Salin link</span>
+        </button>
+
+        <button class="sheet-cancel-btn" style="margin-top: 0.75rem;" @click="closeShareModal">Tutup</button>
+      </div>
+    </div>
+
+    <!-- Edit order backdrop -->
+    <div v-if="showEditModal" class="sheet-backdrop" @click="closeEditModal"></div>
+
+    <!-- Edit order bottom sheet -->
+    <div class="bottom-sheet" :class="{ 'bottom-sheet--open': showEditModal }">
+      <div class="sheet-handle"></div>
+      <div class="sheet-section">
+        <div class="sheet-nav">
+          <button class="sheet-back-btn" @click="closeEditModal">
+            <i class="pi pi-arrow-left"></i>
+          </button>
+          <h2 class="sheet-title">Edit pesanan</h2>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama pemesan</label>
+          <input
+            v-model="editForm.name"
+            class="form-input"
+            type="text"
+            placeholder="contoh: Budi"
+            :disabled="editSubmitting"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pesanan</label>
+          <input
+            v-model="editForm.order_detail"
+            class="form-input"
+            type="text"
+            placeholder="contoh: Nasi goreng"
+            :disabled="editSubmitting"
+          />
+        </div>
+        <div class="form-row">
+          <div class="form-group form-group--flex">
+            <label class="form-label">Harga <span class="form-optional">(opsional)</span></label>
+            <input
+              v-model.number="editForm.price"
+              class="form-input"
+              type="number"
+              placeholder="0"
+              min="0"
+              :disabled="editSubmitting"
+            />
+          </div>
+          <div class="form-group form-group--flex">
+            <label class="form-label">Qty</label>
+            <input
+              v-model.number="editForm.qty"
+              class="form-input"
+              type="number"
+              placeholder="1"
+              min="1"
+              :disabled="editSubmitting"
+            />
+          </div>
+        </div>
+
+        <p v-if="editError" class="form-error">{{ editError }}</p>
+
+        <button
+          class="submit-btn"
+          :disabled="editSubmitting || !editForm.name.trim() || !editForm.order_detail.trim()"
+          @click="submitEdit"
+        >
+          <i v-if="editSubmitting" class="pi pi-spin pi-spinner"></i>
+          <span>{{ editSubmitting ? 'Menyimpan...' : 'Simpan perubahan' }}</span>
+        </button>
+
+        <button class="delete-btn" :disabled="editSubmitting" @click="confirmDeleteOrder">
+          <i class="pi pi-trash"></i>
+          <span>Hapus pesanan ini</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom sheet backdrop -->
+    <div v-if="showAddModal" class="sheet-backdrop" @click="closeAddModal"></div>
+
+    <!-- Add order bottom sheet -->
+    <div class="bottom-sheet" :class="{ 'bottom-sheet--open': showAddModal }">
+      <div class="sheet-handle"></div>
+
+      <!-- Mode choose -->
+      <div v-if="addMode === 'choose'" class="sheet-section">
+        <h2 class="sheet-title">Tambah Pesanan</h2>
+        <div class="mode-buttons">
+          <button class="mode-btn" @click="addMode = 'single'">
+            <i class="pi pi-user"></i>
+            <span class="mode-btn-label">Tambah satu-satu</span>
+            <span class="mode-btn-desc">Isi satu form per pesanan</span>
+          </button>
+          <button class="mode-btn" @click="addMode = 'bulk'">
+            <i class="pi pi-list"></i>
+            <span class="mode-btn-label">Tambah banyak sekaligus</span>
+            <span class="mode-btn-desc">Paste atau ketik beberapa baris</span>
+          </button>
+        </div>
+        <button class="sheet-cancel-btn" @click="closeAddModal">Batal</button>
+      </div>
+
+      <!-- Single mode -->
+      <div v-else-if="addMode === 'single'" class="sheet-section">
+        <div class="sheet-nav">
+          <button class="sheet-back-btn" @click="addMode = 'choose'">
+            <i class="pi pi-arrow-left"></i>
+          </button>
+          <h2 class="sheet-title">Tambah satu-satu</h2>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nama pemesan</label>
+          <input
+            v-model="singleForm.name"
+            class="form-input"
+            type="text"
+            placeholder="contoh: Budi"
+            :disabled="addSubmitting"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pesanan</label>
+          <input
+            v-model="singleForm.order_detail"
+            class="form-input"
+            type="text"
+            placeholder="contoh: Nasi goreng"
+            :disabled="addSubmitting"
+          />
+        </div>
+        <div class="form-row">
+          <div class="form-group form-group--flex">
+            <label class="form-label">Harga <span class="form-optional">(opsional)</span></label>
+            <input
+              v-model.number="singleForm.price"
+              class="form-input"
+              type="number"
+              placeholder="0"
+              min="0"
+              :disabled="addSubmitting"
+            />
+          </div>
+          <div class="form-group form-group--flex">
+            <label class="form-label">Qty</label>
+            <input
+              v-model.number="singleForm.qty"
+              class="form-input"
+              type="number"
+              placeholder="1"
+              min="1"
+              :disabled="addSubmitting"
+            />
+          </div>
+        </div>
+
+        <p v-if="addError" class="form-error">{{ addError }}</p>
+
+        <button
+          class="submit-btn"
+          :disabled="addSubmitting || !singleForm.name.trim() || !singleForm.order_detail.trim()"
+          @click="submitSingle"
+        >
+          <i v-if="addSubmitting" class="pi pi-spin pi-spinner"></i>
+          <span>{{ addSubmitting ? 'Menyimpan...' : 'Simpan pesanan' }}</span>
+        </button>
+      </div>
+
+      <!-- Bulk mode -->
+      <div v-else-if="addMode === 'bulk'" class="sheet-section">
+        <div class="sheet-nav">
+          <button class="sheet-back-btn" @click="addMode = 'choose'">
+            <i class="pi pi-arrow-left"></i>
+          </button>
+          <h2 class="sheet-title">Tambah banyak sekaligus</h2>
+        </div>
+
+        <p class="bulk-hint">Paste langsung dari WA/chat. Format per baris: <code>1. Nama: Detail pesanan</code> — baris lain diabaikan otomatis.</p>
+
+        <textarea
+          v-model="bulkText"
+          class="bulk-textarea"
+          placeholder="1. Rachel: nasi soto daging&#10;2. Dimas: ayam madura dada&#10;3. Nastha: ketoprak telur dadar"
+          rows="8"
+          :disabled="addSubmitting"
+        ></textarea>
+
+        <!-- Preview -->
+        <div v-if="parsedBulkOrders.length > 0" class="bulk-preview">
+          <p class="bulk-preview-title">{{ parsedBulkOrders.length }} pesanan akan ditambahkan:</p>
+          <ul class="bulk-preview-list">
+            <li v-for="(o, i) in parsedBulkOrders" :key="i" class="bulk-preview-item">
+              <span class="preview-name">{{ o.name }}</span>
+              <span class="preview-detail">{{ o.order_detail }}</span>
+              <span v-if="o.price" class="preview-price">Rp {{ formatRupiah(o.price) }}</span>
+              <span v-else class="preview-no-price">harga belum diisi</span>
+            </li>
+          </ul>
+        </div>
+
+        <p v-if="addError" class="form-error">{{ addError }}</p>
+
+        <button
+          class="submit-btn"
+          :disabled="addSubmitting || parsedBulkOrders.length === 0"
+          @click="submitBulk"
+        >
+          <i v-if="addSubmitting" class="pi pi-spin pi-spinner"></i>
+          <span>{{ addSubmitting ? 'Menyimpan...' : `Simpan ${parsedBulkOrders.length} pesanan` }}</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import Toast from 'primevue/toast'
-import { listmak } from '../api'
+import { listmak, share } from '../api'
 
 export default {
   name: 'OrderListView',
@@ -129,7 +400,24 @@ export default {
       loading: false,
       loadError: '',
       loadingGroups: {},
-      visibleCount: 10
+      visibleCount: 10,
+      showAddModal: false,
+      addMode: 'choose',
+      singleForm: { name: '', order_detail: '', price: '', qty: 1 },
+      bulkText: '',
+      addSubmitting: false,
+      addError: '',
+      // edit modal
+      showEditModal: false,
+      editForm: { id: null, name: '', order_detail: '', price: '', qty: 1 },
+      editSubmitting: false,
+      editError: '',
+      // share modal
+      showShareModal: false,
+      shareMode: 'choose',
+      shareResult: null,
+      shareLoading: false,
+      shareError: ''
     }
   },
 
@@ -179,6 +467,26 @@ export default {
 
     unpaidGroupCount() {
       return this.groups.filter(g => !g.allPaid).length
+    },
+
+    parsedBulkOrders() {
+      const NUMBERED_RE = /^\d+\.\s+(.+?):\s+(.+)$/
+      const INVISIBLE = /[​‌‍⁠﻿]/g
+      return this.bulkText
+        .split('\n')
+        .map(line => line.replace(INVISIBLE, '').trim())
+        .filter(line => line)
+        .map(line => {
+          const m = line.match(NUMBERED_RE)
+          if (!m) return null
+          return {
+            name: m[1].trim(),
+            order_detail: m[2].trim(),
+            price: 0,
+            qty: 1
+          }
+        })
+        .filter(Boolean)
     }
   },
 
@@ -257,15 +565,169 @@ export default {
     },
 
     openShare() {
-      // TODO 5d: modal Bagikan
+      this.showShareModal = true
+      this.shareMode = 'choose'
+      this.shareResult = null
+      this.shareError = ''
+    },
+
+    closeShareModal() {
+      if (!this.shareLoading) {
+        this.showShareModal = false
+        this.shareMode = 'choose'
+      }
+    },
+
+    async createInputLink() {
+      this.shareLoading = true
+      this.shareError = ''
+      try {
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        const res = await share.createShareLink({
+          listmak_id: this.listmakId,
+          title: this.listmakTitle,
+          expires_at: expiresAt
+        })
+        const shareId = res.data.share_id
+        const url = `${window.location.origin}/listmak/order/${shareId}`
+        this.shareResult = { url, type: 'input' }
+        this.shareMode = 'result'
+      } catch (err) {
+        this.shareError = err.message || 'Gagal membuat link. Coba lagi.'
+      } finally {
+        this.shareLoading = false
+      }
+    },
+
+    async createViewLink() {
+      this.shareLoading = true
+      this.shareError = ''
+      try {
+        const res = await share.createViewShare({
+          listmak_id: this.listmakId,
+          title: this.listmakTitle
+        })
+        const viewId = res.data.view_id
+        const url = `${window.location.origin}/listmak/view/${viewId}`
+        this.shareResult = { url, type: 'view' }
+        this.shareMode = 'result'
+      } catch (err) {
+        this.shareError = err.message || 'Gagal membuat link. Coba lagi.'
+      } finally {
+        this.shareLoading = false
+      }
+    },
+
+    async copyShareUrl() {
+      try {
+        await navigator.clipboard.writeText(this.shareResult.url)
+        this.$toast.add({ severity: 'success', summary: 'Link disalin!', life: 2000 })
+      } catch {
+        this.$toast.add({ severity: 'error', summary: 'Gagal menyalin. Salin manual.', life: 2000 })
+      }
     },
 
     openAddOrder() {
-      // TODO 5c: modal Tambah pesanan
+      this.showAddModal = true
+      this.addMode = 'choose'
+      this.singleForm = { name: '', order_detail: '', price: '', qty: 1 }
+      this.bulkText = ''
+      this.addError = ''
     },
 
-    openEditOrder(_order) {
-      // TODO 5c: edit order modal
+    closeAddModal() {
+      if (!this.addSubmitting) {
+        this.showAddModal = false
+        this.addMode = 'choose'
+      }
+    },
+
+    async submitSingle() {
+      this.addSubmitting = true
+      this.addError = ''
+      try {
+        await listmak.addOrder(this.listmakId, {
+          name: this.singleForm.name.trim(),
+          order_detail: this.singleForm.order_detail.trim(),
+          price: this.singleForm.price || 0,
+          qty: this.singleForm.qty || 1
+        })
+        await this.refreshOrders()
+        this.singleForm = { name: '', order_detail: '', price: '', qty: 1 }
+        this.showAddModal = false
+      } catch (err) {
+        this.addError = err.message || 'Gagal menyimpan. Coba lagi.'
+      } finally {
+        this.addSubmitting = false
+      }
+    },
+
+    async submitBulk() {
+      if (!this.parsedBulkOrders.length) return
+      this.addSubmitting = true
+      this.addError = ''
+      try {
+        await listmak.addBulkOrders(this.listmakId, this.parsedBulkOrders)
+        await this.refreshOrders()
+        this.bulkText = ''
+        this.showAddModal = false
+      } catch (err) {
+        this.addError = err.message || 'Gagal menyimpan. Coba lagi.'
+      } finally {
+        this.addSubmitting = false
+      }
+    },
+
+    openEditOrder(order) {
+      this.editForm = {
+        id: order.id,
+        name: order.name,
+        order_detail: order.order_detail,
+        price: order.price || '',
+        qty: order.qty || 1
+      }
+      this.editError = ''
+      this.showEditModal = true
+    },
+
+    closeEditModal() {
+      if (!this.editSubmitting) {
+        this.showEditModal = false
+      }
+    },
+
+    async submitEdit() {
+      this.editSubmitting = true
+      this.editError = ''
+      try {
+        await listmak.updateOrder(this.editForm.id, {
+          name: this.editForm.name.trim(),
+          order_detail: this.editForm.order_detail.trim(),
+          price: this.editForm.price || 0,
+          qty: this.editForm.qty || 1
+        })
+        await this.refreshOrders()
+        this.showEditModal = false
+      } catch (err) {
+        this.editError = err.message || 'Gagal menyimpan. Coba lagi.'
+      } finally {
+        this.editSubmitting = false
+      }
+    },
+
+    async confirmDeleteOrder() {
+      if (!confirm(`Hapus pesanan "${this.editForm.order_detail}"?`)) return
+      this.editSubmitting = true
+      this.editError = ''
+      try {
+        await listmak.deleteOrder(this.editForm.id)
+        await this.refreshOrders()
+        this.showEditModal = false
+      } catch (err) {
+        this.editError = err.message || 'Gagal menghapus. Coba lagi.'
+      } finally {
+        this.editSubmitting = false
+      }
     }
   }
 }
@@ -647,5 +1109,384 @@ export default {
     padding: 1.5rem 2rem;
     max-width: 720px;
   }
+}
+
+/* Bottom sheet */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 100;
+}
+
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem 1.25rem 0 0;
+  z-index: 101;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.28s ease;
+}
+
+.bottom-sheet--open {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  margin: 0.75rem auto 0;
+}
+
+.sheet-section {
+  padding: 1rem 1.25rem 2rem;
+}
+
+.sheet-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sheet-back-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 0.5rem;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.sheet-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 1.25rem;
+}
+
+.sheet-nav .sheet-title {
+  margin: 0;
+}
+
+/* Mode choose buttons */
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 1rem 1.125rem;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.875rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.mode-btn:hover {
+  background: rgba(30, 41, 59, 1);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.mode-btn i {
+  font-size: 1.25rem;
+  color: #818cf8;
+  margin-bottom: 0.25rem;
+}
+
+.mode-btn-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.mode-btn-desc {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.sheet-cancel-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-group--flex {
+  flex: 1;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.375rem;
+}
+
+.form-optional {
+  font-weight: 400;
+  color: #475569;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.625rem;
+  color: #f1f5f9;
+  font-size: 0.9375rem;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+}
+
+.form-input::placeholder {
+  color: #334155;
+}
+
+.form-error {
+  font-size: 0.8125rem;
+  color: #ef4444;
+  margin-bottom: 0.75rem;
+}
+
+/* Bulk textarea */
+.bulk-hint {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+.bulk-hint code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.3rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+.bulk-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.625rem;
+  color: #f1f5f9;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+}
+
+.bulk-textarea:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.bulk-textarea:disabled {
+  opacity: 0.5;
+}
+
+/* Bulk preview */
+.bulk-preview {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-preview-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.bulk-preview-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.bulk-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.preview-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  min-width: 5rem;
+}
+
+.preview-detail {
+  flex: 1;
+  color: #94a3b8;
+}
+
+.preview-price {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.preview-no-price {
+  color: #f97316;
+  font-size: 0.75rem;
+}
+
+/* Share modal specifics */
+.share-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: -0.75rem 0 1.25rem;
+}
+
+.share-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.share-result-icon {
+  width: 3rem;
+  height: 3rem;
+  background: rgba(99, 102, 241, 0.12);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.share-result-icon i {
+  font-size: 1.25rem;
+  color: #818cf8;
+}
+
+.share-result-type {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: -0.5rem 0 1.25rem;
+}
+
+.share-url-box {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.625rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  word-break: break-all;
+}
+
+.share-url-text {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+/* Submit button */
+.submit-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: none;
+  border-radius: 0.875rem;
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 0.5rem;
+}
+
+.submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.delete-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.875rem;
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.75rem;
+  transition: background 0.15s;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

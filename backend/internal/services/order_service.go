@@ -64,16 +64,22 @@ func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (
 }
 
 func (s *orderService) UpdateOrder(order models.Order) (models.Order, error) {
-	// Get existing to keep some fields? Or assume full update?
-	// Usually controller merges but here we assume 'order' has ID
-	order.TotalPrice = order.Price * float64(order.Qty)
-
-	updatedOrder, err := s.orderRepo.UpdateOrder(order)
+	existing, err := s.orderRepo.GetOrderById(order.ID)
 	if err != nil {
 		return models.Order{}, err
 	}
 
-	s.updateListmakTotals(updatedOrder.ListmakID)
+	existing.Name = order.Name
+	existing.OrderDetail = order.OrderDetail
+	existing.Price = order.Price
+	existing.Qty = order.Qty
+
+	updatedOrder, err := s.orderRepo.UpdateOrder(existing)
+	if err != nil {
+		return models.Order{}, err
+	}
+
+	s.updateListmakTotals(existing.ListmakID)
 	return updatedOrder, nil
 }
 
