@@ -388,7 +388,15 @@
                     </button>
                 </div>
 
-                <!-- Section C: Salin teks (added in Task 8) -->
+                <!-- Section C: Salin teks -->
+                <div class="share-section">
+                    <p class="share-section-label">📋 Daftar pesanan</p>
+                    <button class="mode-btn" @click="copyOrderText">
+                        <i class="pi pi-copy"></i>
+                        <span class="mode-btn-label">Salin daftar pesanan</span>
+                        <span class="mode-btn-desc">Langsung copy semua pesanan + total + status bayar — cocok dishare ke WA</span>
+                    </button>
+                </div>
 
                 <p v-if="shareError" class="form-error">{{ shareError }}</p>
                 <div v-if="shareLoading" class="share-loading">
@@ -1452,6 +1460,87 @@ export default {
                 `https://wa.me/?text=${encodeURIComponent(this.buildShareMessage())}`,
                 "_blank",
             );
+        },
+
+        async copyOrderText() {
+            const lines = [];
+            const title = this.listmakTitle;
+            const date = new Date().toLocaleDateString(
+                "id-ID",
+                {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                },
+            );
+
+            lines.push(`*${title}* 📋`);
+            lines.push(date);
+            lines.push("");
+            lines.push(
+                `Ada ${this.totalOrders} pesanan hari ini~`,
+            );
+            lines.push("");
+
+            for (const group of this.groups) {
+                lines.push(`👤 *${group.name}*`);
+                for (const order of group.orders) {
+                    const price =
+                        order.price && order.price > 0
+                            ? `Rp ${this.formatRupiah((order.price || 0) * (order.qty || 1))}`
+                            : "harga belum diisi";
+                    lines.push(
+                        `- ${order.order_detail} · ${price}`,
+                    );
+                }
+                const totalLine = group.hasUnpriced
+                    ? "Total: belum jelas"
+                    : `Total: Rp ${this.formatRupiah(group.total)}`;
+                const paidLine =
+                    group.allPaid && !group.hasUnpriced
+                        ? "✅ Lunas"
+                        : "⏳ Belum bayar";
+                lines.push(`${totalLine} · ${paidLine}`);
+                lines.push("");
+            }
+
+            const grandTotal = this.groups.reduce(
+                (s, g) => s + (g.total || 0),
+                0,
+            );
+            const paidCount = this.groups.filter(
+                (g) => g.allPaid && !g.hasUnpriced,
+            ).length;
+            const unpaidCount =
+                this.groups.length - paidCount;
+
+            lines.push("---");
+            lines.push(
+                `Total terkumpul: Rp ${this.formatRupiah(grandTotal)}`,
+            );
+            lines.push(
+                `Lunas: ${paidCount} orang · Belum: ${unpaidCount} orang`,
+            );
+
+            try {
+                await navigator.clipboard.writeText(
+                    lines.join("\n"),
+                );
+                this.$toast.add({
+                    severity: "success",
+                    summary: "Teks disalin! 🎉",
+                    life: 2000,
+                });
+                this.closeShareModal();
+            } catch {
+                this.$toast.add({
+                    severity: "error",
+                    summary:
+                        "Gagal menyalin. Coba salin manual.",
+                    life: 2000,
+                });
+            }
         },
 
         openAddOrder() {
