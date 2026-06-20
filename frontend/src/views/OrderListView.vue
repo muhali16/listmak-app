@@ -915,6 +915,14 @@ export default {
             shareResult: null,
             shareLoading: false,
             shareError: "",
+            // active share state
+            activeShareLink: null,
+            activeViewShare: null,
+            activeSharesLoaded: false,
+            // expiry picker
+            selectedExpiry: "7d",
+            customExpiryDate: "",
+            forceNew: false,
         };
     },
 
@@ -1020,13 +1028,64 @@ export default {
                 })
                 .filter(Boolean);
         },
+
+        shareLinkUrl() {
+            if (!this.activeShareLink) return "";
+            return `${window.location.origin}/listmak/order/${this.activeShareLink.share_id}`;
+        },
+        viewShareUrl() {
+            if (!this.activeViewShare) return "";
+            return `${window.location.origin}/listmak/view/${this.activeViewShare.view_id}`;
+        },
+        shareLinkExpiryLabel() {
+            if (!this.activeShareLink) return "";
+            const msLeft =
+                new Date(this.activeShareLink.expires_at) - Date.now();
+            const daysLeft = Math.ceil(
+                msLeft / (1000 * 60 * 60 * 24),
+            );
+            if (daysLeft <= 0) return "kedaluwarsa";
+            if (daysLeft === 1) return "exp. besok";
+            return `exp. ${daysLeft} hari lagi`;
+        },
+        expiryOptions() {
+            return [
+                { value: "1d", label: "1 hari" },
+                { value: "3d", label: "3 hari" },
+                { value: "7d", label: "7 hari" },
+                { value: "30d", label: "30 hari" },
+            ];
+        },
+        minCustomExpiry() {
+            const now = new Date(Date.now() + 60 * 60 * 1000);
+            return now.toISOString().slice(0, 16);
+        },
     },
 
     mounted() {
         this.loadData();
+        this.loadActiveShares();
     },
 
     methods: {
+        async loadActiveShares() {
+            try {
+                const res = await share.getActiveShares(
+                    this.listmakId,
+                );
+                if (res.success && res.data) {
+                    this.activeShareLink =
+                        res.data.share_link;
+                    this.activeViewShare =
+                        res.data.view_share;
+                }
+            } catch {
+                // silent — page still works without active shares info
+            } finally {
+                this.activeSharesLoaded = true;
+            }
+        },
+
         async loadData() {
             this.loading = true;
             this.loadError = "";

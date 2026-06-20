@@ -85,6 +85,10 @@ export default {
     })
   },
 
+  getActiveShares(listmakId) {
+    return apiCall(`/listmaks/${listmakId}/active-shares`)
+  },
+
   // --- VIEW SHARES (Read-only Links) ---
 
   createViewShare(data) {
