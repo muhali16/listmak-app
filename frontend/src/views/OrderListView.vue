@@ -49,54 +49,6 @@
         </div>
 
         <template v-else>
-            <!-- Active links section -->
-            <div
-                v-if="activeSharesLoaded && (activeShareLink || activeViewShare)"
-                class="active-links-card"
-            >
-                <span class="active-links-label"><i class="pi pi-link"></i> Link aktif</span>
-                <div v-if="activeShareLink" class="active-link-row">
-                    <i class="active-link-icon pi pi-pencil"></i>
-                    <span class="active-link-text">Isi pesanan · {{ shareLinkExpiryLabel }}</span>
-                    <div class="active-link-actions">
-                        <button
-                            class="active-link-btn"
-                            @click="copyLinkUrl(shareLinkUrl)"
-                            title="Salin link"
-                        >
-                            <i class="pi pi-copy"></i>
-                        </button>
-                        <button
-                            class="active-link-btn"
-                            @click="shareLinkViaWa('input', shareLinkUrl)"
-                            title="Kirim WA"
-                        >
-                            <i class="pi pi-whatsapp"></i>
-                        </button>
-                    </div>
-                </div>
-                <div v-if="activeViewShare" class="active-link-row">
-                    <i class="active-link-icon pi pi-eye"></i>
-                    <span class="active-link-text">Lihat daftar</span>
-                    <div class="active-link-actions">
-                        <button
-                            class="active-link-btn"
-                            @click="copyLinkUrl(viewShareUrl)"
-                            title="Salin link"
-                        >
-                            <i class="pi pi-copy"></i>
-                        </button>
-                        <button
-                            class="active-link-btn"
-                            @click="shareLinkViaWa('view', viewShareUrl)"
-                            title="Kirim WA"
-                        >
-                            <i class="pi pi-whatsapp"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Summary 2-column -->
             <div class="summary-card">
                 <div class="summary-item">
@@ -137,18 +89,28 @@
                 <span>Tambah pesanan</span>
             </button>
 
+            <!-- Search -->
+            <div class="search-wrap">
+                <i class="pi pi-search search-icon"></i>
+                <input
+                    v-model="searchQuery"
+                    class="search-input"
+                    type="search"
+                    placeholder="Cari nama atau pesanan..."
+                />
+            </div>
+
             <!-- Empty -->
             <div
-                v-if="groups.length === 0"
+                v-if="filteredGroups.length === 0"
                 class="state-block empty"
             >
                 <div class="empty-icon">
                     <i class="pi pi-inbox"></i>
                 </div>
-                <h3>Belum ada pesanan</h3>
+                <h3>{{ searchQuery ? 'Tidak ada hasil' : 'Belum ada pesanan' }}</h3>
                 <p>
-                    Tekan "+ Tambah pesanan" untuk
-                    mulai.
+                    {{ searchQuery ? 'Coba kata kunci lain.' : 'Tekan "+ Tambah pesanan" untuk mulai.' }}
                 </p>
             </div>
 
@@ -345,7 +307,7 @@
                         <span class="existing-link-url">{{ shareLinkUrl }}</span>
                         <span class="existing-link-meta">{{ shareLinkExpiryLabel }}</span>
                         <div class="existing-link-btns">
-                            <button class="submit-btn" style="flex:1" @click="copyLinkUrl(shareLinkUrl)">
+                            <button class="submit-btn" style="flex:1" @click="copyLinkMessage('input', shareLinkUrl)">
                                 <i class="pi pi-copy"></i> Salin
                             </button>
                             <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('input', shareLinkUrl)">
@@ -368,7 +330,7 @@
                     <div v-if="activeViewShare" class="existing-link-box">
                         <span class="existing-link-url">{{ viewShareUrl }}</span>
                         <div class="existing-link-btns">
-                            <button class="submit-btn" style="flex:1" @click="copyLinkUrl(viewShareUrl)">
+                            <button class="submit-btn" style="flex:1" @click="copyLinkMessage('view', viewShareUrl)">
                                 <i class="pi pi-copy"></i> Salin
                             </button>
                             <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('view', viewShareUrl)">
@@ -1035,6 +997,8 @@ export default {
             selectedExpiry: "7d",
             customExpiryDate: "",
             forceNew: false,
+            // search
+            searchQuery: "",
         };
     },
 
@@ -1091,8 +1055,27 @@ export default {
             });
         },
 
+        filteredGroups() {
+            if (!this.searchQuery.trim())
+                return this.groups;
+            const q = this.searchQuery
+                .trim()
+                .toLowerCase();
+            return this.groups.filter(
+                (g) =>
+                    g.name
+                        .toLowerCase()
+                        .includes(q) ||
+                    g.orders.some((o) =>
+                        o.order_detail
+                            .toLowerCase()
+                            .includes(q),
+                    ),
+            );
+        },
+
         visibleGroups() {
-            return this.groups.slice(
+            return this.filteredGroups.slice(
                 0,
                 this.visibleCount,
             );
@@ -1101,7 +1084,7 @@ export default {
         hasMore() {
             return (
                 this.visibleCount <
-                this.groups.length
+                this.filteredGroups.length
             );
         },
 
@@ -1171,6 +1154,12 @@ export default {
         minCustomExpiry() {
             const now = new Date(Date.now() + 60 * 60 * 1000);
             return now.toISOString().slice(0, 16);
+        },
+    },
+
+    watch: {
+        searchQuery() {
+            this.visibleCount = 10;
         },
     },
 
@@ -1319,6 +1308,28 @@ export default {
                 this.$toast.add({
                     severity: "success",
                     summary: "Link disalin!",
+                    life: 2000,
+                });
+            } catch {
+                this.$toast.add({
+                    severity: "error",
+                    summary: "Gagal menyalin",
+                    life: 2000,
+                });
+            }
+        },
+        async copyLinkMessage(type, url) {
+            const text = this.buildLinkMessage(
+                type,
+                url,
+            );
+            try {
+                await navigator.clipboard.writeText(
+                    text,
+                );
+                this.$toast.add({
+                    severity: "success",
+                    summary: "Pesan disalin!",
                     life: 2000,
                 });
             } catch {
@@ -2565,73 +2576,44 @@ export default {
     font-weight: 600;
 }
 
-/* ── Active links section ── */
-.active-links-card {
-    background: rgba(30, 41, 59, 0.6);
-    border: 1px solid rgba(99, 179, 237, 0.15);
-    border-radius: 0.875rem;
-    padding: 0.875rem 1rem;
+/* ── Search ── */
+.search-wrap {
+    position: relative;
     margin-bottom: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.625rem;
 }
 
-.active-links-label {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    color: #63b3ed;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 0.125rem;
-}
-
-.active-link-row {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-}
-
-.active-link-icon {
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #475569;
     font-size: 0.875rem;
-    color: #64748b;
-    flex-shrink: 0;
+    pointer-events: none;
 }
 
-.active-link-text {
-    flex: 1;
-    font-size: 0.8125rem;
-    color: #94a3b8;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.active-link-actions {
-    display: flex;
-    gap: 0.375rem;
-    flex-shrink: 0;
-}
-
-.active-link-btn {
-    background: rgba(255, 255, 255, 0.06);
+.search-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem 0.625rem 2.25rem;
+    background: rgba(30, 41, 59, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 0.5rem;
-    color: #94a3b8;
-    padding: 0.375rem 0.5rem;
-    cursor: pointer;
-    font-size: 0.8125rem;
-    display: flex;
-    align-items: center;
-    transition: background 0.15s;
+    border-radius: 0.75rem;
+    color: #f1f5f9;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
 }
 
-.active-link-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #e2e8f0;
+.search-input:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+.search-input::placeholder {
+    color: #334155;
+}
+
+.search-input::-webkit-search-cancel-button {
+    filter: invert(0.5);
 }
 </style>
