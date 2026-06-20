@@ -15,6 +15,8 @@ type OrderRepository interface {
 	UpdateOrder(order models.Order) (models.Order, error)
 	UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error)
 	DeleteOrder(id uint) error
+	UpdateVendorName(id uint, vendor string) error
+	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
 }
 
 type orderRepository struct {
@@ -106,4 +108,55 @@ func (r *orderRepository) UpdateOrdersPaidByName(listmakId uint, name string, is
 
 func (r *orderRepository) DeleteOrder(id uint) error {
 	return r.db.Delete(&models.Order{}, id).Error
+}
+
+func (r *orderRepository) UpdateVendorName(id uint, vendor string) error {
+	return r.db.Model(&models.Order{}).Where("id = ?", id).Update("vendor_name", vendor).Error
+}
+
+func (r *orderRepository) GetFoodSuggestions(listmakID uint, query string) ([]string, error) {
+	var results []string
+
+	if query == "" {
+		err := r.db.Model(&models.Order{}).
+			Select("order_detail").
+			Where("listmak_id = ? AND deleted_at IS NULL", listmakID).
+			Group("order_detail").
+			Order("COUNT(*) DESC").
+			Limit(8).
+			Pluck("order_detail", &results).Error
+		return results, err
+	}
+
+	likePattern := "%" + query + "%"
+
+	var sameListmak []string
+	if err := r.db.Model(&models.Order{}).
+		Where("listmak_id = ? AND order_detail ILIKE ? AND deleted_at IS NULL", listmakID, likePattern).
+		Distinct("order_detail").
+		Order("order_detail").
+		Limit(5).
+		Pluck("order_detail", &sameListmak).Error; err != nil {
+		return nil, err
+	}
+	results = append(results, sameListmak...)
+
+	remaining := 8 - len(results)
+	if remaining > 0 {
+		q := r.db.Model(&models.Order{}).
+			Where("order_detail ILIKE ? AND deleted_at IS NULL", likePattern).
+			Distinct("order_detail").
+			Order("order_detail").
+			Limit(remaining)
+		if len(sameListmak) > 0 {
+			q = q.Where("order_detail NOT IN ?", sameListmak)
+		}
+		var global []string
+		if err := q.Pluck("order_detail", &global).Error; err != nil {
+			return nil, err
+		}
+		results = append(results, global...)
+	}
+
+	return results, nil
 }
