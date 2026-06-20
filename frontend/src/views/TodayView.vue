@@ -7,7 +7,7 @@
     </header>
 
     <!-- Create new listmak — always visible, explicit text label (not just "+") -->
-    <button class="create-btn" @click="goCreate">
+    <button class="create-btn" @click="showCreateModal = true">
       <i class="pi pi-plus"></i>
       <span>Buat listmak baru</span>
     </button>
@@ -59,6 +59,43 @@
       <h3>Belum ada listmak hari ini</h3>
       <p>Buat listmak baru untuk mulai mencatat pesanan.</p>
     </section>
+
+    <!-- Create Listmak Modal -->
+    <div v-if="showCreateModal" class="modal-overlay" @click.self="closeCreateModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Buat ListMak Baru</h3>
+          <button @click="closeCreateModal" class="modal-close">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Judul ListMak</label>
+            <input
+              ref="titleInput"
+              type="text"
+              v-model="newTitle"
+              placeholder="Contoh: Makan Siang Ops"
+              class="modal-input"
+              @keyup.enter="createListmak"
+            />
+          </div>
+          <p v-if="createError" class="create-error">{{ createError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="submit-btn"
+            @click="createListmak"
+            :disabled="!newTitle.trim() || creating"
+          >
+            <i v-if="creating" class="pi pi-spin pi-spinner"></i>
+            <i v-else class="pi pi-check"></i>
+            {{ creating ? 'Membuat...' : 'Buat ListMak' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -71,7 +108,11 @@ export default {
     return {
       listmaks: [],
       loading: false,
-      error: ''
+      error: '',
+      showCreateModal: false,
+      newTitle: '',
+      creating: false,
+      createError: ''
     }
   },
   computed: {
@@ -81,6 +122,11 @@ export default {
     formattedToday() {
       const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
       return new Date().toLocaleDateString('id-ID', options)
+    }
+  },
+  watch: {
+    showCreateModal(val) {
+      if (val) this.$nextTick(() => this.$refs.titleInput?.focus())
     }
   },
   mounted() {
@@ -119,12 +165,35 @@ export default {
         unpaidCount
       }
     },
-    goCreate() {
-      this.$router.push({ path: '/listmak/input', query: { date: this.today } })
+    closeCreateModal() {
+      if (this.creating) return
+      this.showCreateModal = false
+      this.newTitle = ''
+      this.createError = ''
+    },
+    async createListmak() {
+      if (!this.newTitle.trim() || this.creating) return
+      this.creating = true
+      this.createError = ''
+      try {
+        const response = await listmak.createListMak({
+          title: this.newTitle.trim(),
+          date: new Date(this.today).toISOString()
+        })
+        if (response.success && response.data) {
+          this.showCreateModal = false
+          this.newTitle = ''
+          this.$router.push({ path: `/listmak/${response.data.id}` })
+        } else {
+          this.createError = 'Gagal membuat ListMak.'
+        }
+      } catch (err) {
+        this.createError = err.message || 'Gagal membuat ListMak. Coba lagi.'
+      } finally {
+        this.creating = false
+      }
     },
     openListmak(id) {
-      // Destination is the per-listmak Order list view (BRIEF step 5b), currently
-      // a placeholder pending task #1 verification.
       this.$router.push({ path: `/listmak/${id}` })
     }
   }
@@ -338,5 +407,136 @@ export default {
     padding: 1.5rem 2rem;
     max-width: 720px;
   }
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: #1e293b;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.modal-close:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+  padding: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.form-group label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.modal-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  font-size: 0.9375rem;
+  padding: 0.75rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.modal-input::placeholder {
+  color: #64748b;
+}
+
+.create-error {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: #ef4444;
+}
+
+.modal-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.submit-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: none;
+  border-radius: 0.625rem;
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn:not(:disabled):hover {
+  opacity: 0.9;
 }
 </style>
