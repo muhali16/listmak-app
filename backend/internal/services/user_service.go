@@ -10,6 +10,7 @@ type UserService interface {
 	CreateUser(user models.User) (models.User, error)
 	GetUserByGoogleId(googleId string) (models.User, error)
 	GetUserById(id uint) (models.User, error)
+	UpdateRole(id uint, role string) error
 }
 
 type userService struct {
@@ -34,4 +35,8 @@ func (s *userService) GetUserByGoogleId(googleId string) (models.User, error) {
 
 func (s *userService) GetUserById(id uint) (models.User, error) {
 	return s.UserRepository.GetUserById(id)
+}
+
+func (s *userService) UpdateRole(id uint, role string) error {
+	return s.UserRepository.UpdateRole(id, role)
 }

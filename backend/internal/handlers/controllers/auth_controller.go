@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/muhali16/listmak-service/internal/models"
@@ -42,6 +43,19 @@ func (ac *authController) getGoogleConfig() *oauth2.Config {
 			TokenURL: "https://accounts.google.com/o/oauth2/token",
 		},
 	}
+}
+
+func isAdminEmail(email string) bool {
+	adminEmails := os.Getenv("ADMIN_EMAILS")
+	if adminEmails == "" {
+		return false
+	}
+	for _, e := range strings.Split(adminEmails, ",") {
+		if strings.EqualFold(strings.TrimSpace(e), email) {
+			return true
+		}
+	}
+	return false
 }
 
 // LoginGoogle godoc
@@ -93,17 +107,27 @@ func (ac *authController) GoogleCallback(c *gin.Context) {
 
 	user, err := ac.UserService.GetUserByGoogleId(googleUser.GoogleID)
 	if err != nil {
+		role := "user"
+		if isAdminEmail(googleUser.Email) {
+			role = "admin"
+		}
 		user = models.User{
 			GoogleID: googleUser.GoogleID,
 			Email:    googleUser.Email,
 			Name:     googleUser.Name,
 			Avatar:   googleUser.Picture,
-			Role:     "user",
+			Role:     role,
 		}
 		user, err = ac.UserService.CreateUser(user)
 		if err != nil {
 			utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to create user", nil)
 			return
+		}
+	} else {
+		// Existing user: enforce ADMIN_EMAILS promotion on every login
+		if isAdminEmail(user.Email) && user.Role != "admin" {
+			ac.UserService.UpdateRole(user.ID, "admin")
+			user.Role = "admin"
 		}
 	}
 

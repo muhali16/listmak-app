@@ -13,6 +13,7 @@ type UserRepository interface {
 	GetUserById(id uint) (models.User, error)
 	UpdateUser(user models.User) (models.User, error)
 	DeleteUser(id uint) error
+	UpdateRole(id uint, role string) error
 }
 
 type userRepository struct {
@@ -71,4 +72,8 @@ func (ur *userRepository) UpdateUser(user models.User) (models.User, error) {
 
 func (ur *userRepository) DeleteUser(id uint) error {
 	return ur.db.Delete(&models.User{}, id).Error
+}
+
+func (ur *userRepository) UpdateRole(id uint, role string) error {
+	return ur.db.Model(&models.User{}).Where("id = ?", id).Update("role", role).Error
 }
