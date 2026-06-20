@@ -22,6 +22,8 @@ type ShareService interface {
 
 	CreateViewShare(listmakId uint, title string, userId uint) (models.ViewShare, error)
 	GetViewShare(viewId string) (models.ViewShare, error)
+
+	GetActiveSharesForListmak(listmakId uint) (shareLink *models.ShareLink, viewShare *models.ViewShare, err error)
 }
 
 type shareService struct {
@@ -79,6 +81,20 @@ func (s *shareService) GetShareLink(shareId string) (models.ShareLink, error) {
 
 func (s *shareService) DeleteShareLink(id uint) error {
 	return s.shareRepo.DeleteShareLink(id)
+}
+
+func (s *shareService) GetActiveSharesForListmak(listmakId uint) (shareLink *models.ShareLink, viewShare *models.ViewShare, err error) {
+	sl, err := s.shareRepo.GetActiveShareLinkByListmakId(listmakId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vs, err := s.viewShareRepo.GetViewShareByListmakId(listmakId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sl, vs, nil
 }
 
 func (s *shareService) CreateViewShare(listmakId uint, title string, userId uint) (models.ViewShare, error) {

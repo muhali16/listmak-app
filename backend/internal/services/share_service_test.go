@@ -12,6 +12,41 @@ import (
 
 // --- fakes ---------------------------------------------------------------
 
+// fakeShareLinkRepo stores share-links in memory.
+type fakeShareLinkRepo struct {
+	active map[uint]*models.ShareLink // keyed by listmak_id
+	store  map[string]models.ShareLink // keyed by share_id
+}
+
+func (f *fakeShareLinkRepo) CreateShareLink(sl models.ShareLink) (models.ShareLink, error) {
+	if f.store == nil {
+		f.store = map[string]models.ShareLink{}
+	}
+	f.store[sl.ShareID] = sl
+	return sl, nil
+}
+
+func (f *fakeShareLinkRepo) GetShareLinkByShareId(shareId string) (models.ShareLink, error) {
+	sl, ok := f.store[shareId]
+	if !ok {
+		return models.ShareLink{}, gorm.ErrRecordNotFound
+	}
+	return sl, nil
+}
+
+func (f *fakeShareLinkRepo) DeleteShareLink(id uint) error { return nil }
+
+func (f *fakeShareLinkRepo) GetActiveShareLinkByListmakId(listmakId uint) (*models.ShareLink, error) {
+	if f.active == nil {
+		return nil, nil
+	}
+	sl, ok := f.active[listmakId]
+	if !ok {
+		return nil, nil
+	}
+	return sl, nil
+}
+
 // fakeViewShareRepo stores view-shares in memory keyed by view_id.
 type fakeViewShareRepo struct {
 	store map[string]models.ViewShare
@@ -31,6 +66,16 @@ func (f *fakeViewShareRepo) GetViewShareByViewId(viewId string) (models.ViewShar
 		return models.ViewShare{}, gorm.ErrRecordNotFound
 	}
 	return vs, nil
+}
+
+func (f *fakeViewShareRepo) GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error) {
+	for _, vs := range f.store {
+		if vs.ListmakID == listmakId {
+			copy := vs
+			return &copy, nil
+		}
+	}
+	return nil, nil
 }
 
 // fakeListmakRepo lets a test control what GetListmakById returns. Only
@@ -60,9 +105,8 @@ func (f *fakeListmakRepo) CreateListmak(l models.Listmak) (models.Listmak, error
 func (f *fakeListmakRepo) UpdateListmak(l models.Listmak) (models.Listmak, error) { return l, nil }
 func (f *fakeListmakRepo) DeleteListmak(id uint) error                            { return nil }
 
-func newServiceWithFakes(vs *fakeViewShareRepo, lr *fakeListmakRepo) ShareService {
-	// shareRepo (ShareLinkRepository) is not used by the view-share paths.
-	return NewShareService(nil, vs, lr)
+func newServiceWithFakes(sl *fakeShareLinkRepo, vs *fakeViewShareRepo, lr *fakeListmakRepo) ShareService {
+	return NewShareService(sl, vs, lr)
 }
 
 // --- tests ---------------------------------------------------------------
@@ -77,7 +121,7 @@ func TestGetViewShare_SnapshotMode_ReturnsFrozenSnapshot(t *testing.T) {
 	// Live listmak has DIFFERENT data; snapshot mode must ignore it entirely.
 	lmRepo := &fakeListmakRepo{listmak: models.Listmak{ID: 1, Title: "New Title", PaidAmount: 99000}}
 
-	svc := newServiceWithFakes(vsRepo, lmRepo)
+	svc := newServiceWithFakes(nil, vsRepo, lmRepo)
 
 	got, err := svc.GetViewShare("abc")
 	if err != nil {
@@ -110,7 +154,7 @@ func TestGetViewShare_LiveMode_ReturnsFreshData(t *testing.T) {
 	}
 	lmRepo := &fakeListmakRepo{listmak: liveListmak}
 
-	svc := newServiceWithFakes(vsRepo, lmRepo)
+	svc := newServiceWithFakes(nil, vsRepo, lmRepo)
 
 	got, err := svc.GetViewShare("live1")
 	if err != nil {
@@ -148,7 +192,7 @@ func TestGetViewShare_LiveMode_ListmakDeleted(t *testing.T) {
 	// Simulate soft-deleted listmak: GetListmakById returns record-not-found.
 	lmRepo := &fakeListmakRepo{getByIDErr: gorm.ErrRecordNotFound}
 
-	svc := newServiceWithFakes(vsRepo, lmRepo)
+	svc := newServiceWithFakes(nil, vsRepo, lmRepo)
 
 	_, err := svc.GetViewShare("live2")
 	if !errors.Is(err, ErrListmakUnavailable) {
@@ -162,7 +206,7 @@ func TestGetViewShare_NotFound(t *testing.T) {
 	vsRepo := &fakeViewShareRepo{store: map[string]models.ViewShare{}}
 	lmRepo := &fakeListmakRepo{}
 
-	svc := newServiceWithFakes(vsRepo, lmRepo)
+	svc := newServiceWithFakes(nil, vsRepo, lmRepo)
 
 	_, err := svc.GetViewShare("missing")
 	if err == nil {
@@ -179,7 +223,7 @@ func TestCreateViewShare_SetsIsLiveTrue(t *testing.T) {
 	vsRepo := &fakeViewShareRepo{}
 	lmRepo := &fakeListmakRepo{listmak: models.Listmak{ID: 1, Title: "X"}}
 
-	svc := newServiceWithFakes(vsRepo, lmRepo)
+	svc := newServiceWithFakes(nil, vsRepo, lmRepo)
 
 	created, err := svc.CreateViewShare(1, "X", 5)
 	if err != nil {
@@ -187,5 +231,71 @@ func TestCreateViewShare_SetsIsLiveTrue(t *testing.T) {
 	}
 	if !created.IsLive {
 		t.Fatal("newly created view share must have IsLive = true")
+	}
+}
+
+func TestGetActiveSharesForListmak_BothExist(t *testing.T) {
+	expiry := time.Now().Add(24 * time.Hour)
+	slRepo := &fakeShareLinkRepo{
+		active: map[uint]*models.ShareLink{
+			1: {ShareID: "abc", ListmakID: 1, ExpiresAt: expiry, IsActive: true},
+		},
+	}
+	vsRepo := &fakeViewShareRepo{store: map[string]models.ViewShare{
+		"xyz": {ViewID: "xyz", ListmakID: 1},
+	}}
+	lmRepo := &fakeListmakRepo{}
+
+	svc := newServiceWithFakes(slRepo, vsRepo, lmRepo)
+
+	sl, vs, err := svc.GetActiveSharesForListmak(1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sl == nil || sl.ShareID != "abc" {
+		t.Fatalf("expected share link abc, got %v", sl)
+	}
+	if vs == nil || vs.ViewID != "xyz" {
+		t.Fatalf("expected view share xyz, got %v", vs)
+	}
+}
+
+func TestGetActiveSharesForListmak_NoneExist(t *testing.T) {
+	slRepo := &fakeShareLinkRepo{}
+	vsRepo := &fakeViewShareRepo{store: map[string]models.ViewShare{}}
+	lmRepo := &fakeListmakRepo{}
+
+	svc := newServiceWithFakes(slRepo, vsRepo, lmRepo)
+
+	sl, vs, err := svc.GetActiveSharesForListmak(99)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sl != nil {
+		t.Fatalf("expected nil share link, got %v", sl)
+	}
+	if vs != nil {
+		t.Fatalf("expected nil view share, got %v", vs)
+	}
+}
+
+func TestGetActiveSharesForListmak_OnlyViewShare(t *testing.T) {
+	slRepo := &fakeShareLinkRepo{}
+	vsRepo := &fakeViewShareRepo{store: map[string]models.ViewShare{
+		"onlyview": {ViewID: "onlyview", ListmakID: 5},
+	}}
+	lmRepo := &fakeListmakRepo{}
+
+	svc := newServiceWithFakes(slRepo, vsRepo, lmRepo)
+
+	sl, vs, err := svc.GetActiveSharesForListmak(5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sl != nil {
+		t.Fatalf("expected nil share link, got %v", sl)
+	}
+	if vs == nil || vs.ViewID != "onlyview" {
+		t.Fatalf("expected view share onlyview, got %v", vs)
 	}
 }
