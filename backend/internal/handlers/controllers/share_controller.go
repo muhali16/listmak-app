@@ -22,6 +22,8 @@ type ShareController interface {
 
 	CreateViewShare(c *gin.Context)
 	GetViewShare(c *gin.Context)
+
+	GetActiveSharesForListmak(c *gin.Context)
 }
 
 type shareController struct {
@@ -266,6 +268,34 @@ func (sc *shareController) CreateViewShare(c *gin.Context) {
 	}
 
 	utils.SendResponse(c, http.StatusOK, true, "View share link berhasil dibuat", viewShare)
+}
+
+// GetActiveSharesForListmak godoc
+// @Summary      Get active share links for a listmak
+// @Description  Returns the latest active share link and view share for a listmak (null if none)
+// @Tags         share-links
+// @Produce      json
+// @Param        id   path      int  true  "Listmak ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  utils.Response
+// @Router       /listmaks/{id}/active-shares [get]
+func (sc *shareController) GetActiveSharesForListmak(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid listmak ID", nil)
+		return
+	}
+
+	shareLink, viewShare, err := sc.shareService.GetActiveSharesForListmak(uint(id))
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to fetch active shares", nil)
+		return
+	}
+
+	utils.SendResponse(c, http.StatusOK, true, "OK", gin.H{
+		"share_link": shareLink,
+		"view_share": viewShare,
+	})
 }
 
 // GetViewShare godoc

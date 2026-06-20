@@ -41,4 +41,11 @@ func ShareRoutes(r *gin.RouterGroup, sc controllers.ShareController) {
 		// Public
 		viewShares.GET("/:viewId", sc.GetViewShare)
 	}
+
+	// Active shares per listmak (auth required)
+	listmakShares := r.Group("/listmaks")
+	listmakShares.Use(middlewares.AuthMiddleware())
+	{
+		listmakShares.GET("/:id/active-shares", sc.GetActiveSharesForListmak)
+	}
 }
