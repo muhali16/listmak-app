@@ -21,6 +21,7 @@ import ContactsView from './views/ContactsView.vue'
 import ProfileView from './views/ProfileView.vue'
 import SharedListMakView from './views/SharedListMakView.vue'
 import ViewListMakView from './views/ViewListMakView.vue'
+import AdminAILogsView from './views/AdminAILogsView.vue'
 
 // Router configuration
 const routes = [
@@ -78,11 +79,17 @@ const routes = [
     component: SharedListMakView,
     meta: { hideNav: true, public: true }
   },
-  { 
-    path: '/listmak/view/:viewId', 
-    name: 'ViewListMak', 
+  {
+    path: '/listmak/view/:viewId',
+    name: 'ViewListMak',
     component: ViewListMakView,
     meta: { hideNav: true, public: true }
+  },
+  {
+    path: '/admin/ai-logs',
+    name: 'AdminAILogs',
+    component: AdminAILogsView,
+    meta: { requiresAuth: true }
   }
 ]
 
