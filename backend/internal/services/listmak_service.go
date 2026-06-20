@@ -8,7 +8,7 @@ import (
 )
 
 type ListmakService interface {
-	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time) ([]models.Listmak, int64, error)
+	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error)
 	GetListmakById(id uint) (models.Listmak, error)
 	GetListmakByDate(date time.Time) ([]models.Listmak, error)
 	CreateListmak(listmak models.Listmak) (models.Listmak, error)
@@ -26,14 +26,14 @@ func NewListmakService(listmakRepo repository.ListmakRepository) ListmakService 
 	}
 }
 
-func (s *listmakService) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time) ([]models.Listmak, int64, error) {
+func (s *listmakService) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error) {
 	if page < 1 {
 		page = 1
 	}
 	if limit < 1 {
 		limit = 10
 	}
-	return s.listmakRepo.GetAllListmaks(page, limit, status, startDate, endDate)
+	return s.listmakRepo.GetAllListmaks(page, limit, status, startDate, endDate, userId)
 }
 
 func (s *listmakService) GetListmakById(id uint) (models.Listmak, error) {

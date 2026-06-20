@@ -93,7 +93,8 @@ export default {
           const all = Array.isArray(res.data) ? res.data : [res.data]
           const grouped = {}
           for (const lm of all) {
-            const date = lm.date
+            const date = lm.date ? lm.date.split('T')[0] : ''
+            if (!date) continue
             if (!grouped[date]) grouped[date] = []
             grouped[date].push(lm)
           }

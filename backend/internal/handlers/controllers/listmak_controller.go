@@ -61,7 +61,10 @@ func (lc *listmakController) GetListmaks(c *gin.Context) {
 		}
 	}
 
-	data, total, err := lc.listmakService.GetAllListmaks(page, limit, status, startDate, endDate)
+	userIdStr := c.MustGet("user_id").(string)
+	userIdUint64, _ := strconv.ParseUint(userIdStr, 10, 64)
+
+	data, total, err := lc.listmakService.GetAllListmaks(page, limit, status, startDate, endDate, uint(userIdUint64))
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to get listmaks", nil)
 		return

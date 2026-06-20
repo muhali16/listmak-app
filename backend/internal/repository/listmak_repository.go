@@ -8,7 +8,7 @@ import (
 )
 
 type ListmakRepository interface {
-	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time) ([]models.Listmak, int64, error)
+	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error)
 	GetListmakById(id uint) (models.Listmak, error)
 	GetListmakByDate(date time.Time) ([]models.Listmak, error)
 	CreateListmak(listmak models.Listmak) (models.Listmak, error)
@@ -24,11 +24,11 @@ func NewListmakRepository(db *gorm.DB) ListmakRepository {
 	return &listmakRepository{db: db}
 }
 
-func (r *listmakRepository) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time) ([]models.Listmak, int64, error) {
+func (r *listmakRepository) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error) {
 	var listmaks []models.Listmak
 	var total int64
 
-	query := r.db.Model(&models.Listmak{})
+	query := r.db.Model(&models.Listmak{}).Where("created_by = ?", userId)
 
 	if status != "" {
 		query = query.Where("status = ?", status)
