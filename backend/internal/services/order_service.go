@@ -20,18 +20,30 @@ type OrderService interface {
 	UpdateOrderPaidStatus(id uint, isPaid bool) (models.Order, error)
 	UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error)
 	DeleteOrder(id uint) error
+	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
+	UpdateVendorName(id uint, vendorName string) error
 }
 
 type orderService struct {
 	orderRepo   repository.OrderRepository
-	listmakRepo repository.ListmakRepository // Injected to update totals manually if no trigger
+	listmakRepo repository.ListmakRepository
+	ai          AIService
 }
 
-func NewOrderService(orderRepo repository.OrderRepository, listmakRepo repository.ListmakRepository) OrderService {
+func NewOrderService(orderRepo repository.OrderRepository, listmakRepo repository.ListmakRepository, ai AIService) OrderService {
 	return &orderService{
 		orderRepo:   orderRepo,
 		listmakRepo: listmakRepo,
+		ai:          ai,
 	}
+}
+
+func (s *orderService) fillVendorAsync(id uint, orderDetail string) {
+	vendor, err := s.ai.ExtractVendor(orderDetail)
+	if err != nil || vendor == "" {
+		return
+	}
+	s.orderRepo.UpdateVendorName(id, vendor)
 }
 
 func (s *orderService) GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error) {
@@ -39,7 +51,6 @@ func (s *orderService) GetOrdersByListmakId(listmakId uint, isPaid *bool, search
 }
 
 func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
-	// Calculate TotalPrice manually just in case
 	order.TotalPrice = order.Price * float64(order.Qty)
 
 	newOrder, err := s.orderRepo.CreateOrder(order)
@@ -47,11 +58,12 @@ func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
 		return models.Order{}, err
 	}
 	s.updateListmakTotals(order.ListmakID)
+
+	go s.fillVendorAsync(newOrder.ID, newOrder.OrderDetail)
 	return newOrder, nil
 }
 
 func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (int, []models.Order, error) {
-	// Prep data
 	for i := range orders {
 		orders[i].ListmakID = listmakId
 		orders[i].TotalPrice = orders[i].Price * float64(orders[i].Qty)
@@ -66,6 +78,10 @@ func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (
 	}
 
 	s.updateListmakTotals(listmakId)
+
+	for _, o := range createdOrders {
+		go s.fillVendorAsync(o.ID, o.OrderDetail)
+	}
 	return len(createdOrders), createdOrders, nil
 }
 
@@ -128,6 +144,14 @@ func (s *orderService) UpdateOrdersPaidByName(listmakId uint, name string, isPai
 
 	s.updateListmakTotals(listmakId)
 	return count, nil
+}
+
+func (s *orderService) GetFoodSuggestions(listmakID uint, query string) ([]string, error) {
+	return s.orderRepo.GetFoodSuggestions(listmakID, query)
+}
+
+func (s *orderService) UpdateVendorName(id uint, vendorName string) error {
+	return s.orderRepo.UpdateVendorName(id, vendorName)
 }
 
 func (s *orderService) DeleteOrder(id uint) error {
