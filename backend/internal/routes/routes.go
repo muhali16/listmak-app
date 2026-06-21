@@ -32,4 +32,6 @@ func Routes(r *gin.Engine, systemLogRepo repository.SystemLogRepository) {
 	ListmakRoutes(v1, container.ListmakController, container.OrderController)
 	ShareRoutes(v1, container.ShareController)
 	AdminRoutes(v1, container.AdminController)
+	SummaryRoutes(v1, container.SummaryController)
+	AIRoutes(v1, container.AIController)
 }

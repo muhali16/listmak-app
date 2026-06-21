@@ -7,6 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
+type OrderPriceUpdate struct {
+	VendorName  string
+	OrderDetail string
+	Price       int
+}
+
 type OrderRepository interface {
 	GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error)
 	GetOrderById(id uint) (models.Order, error)
@@ -14,6 +20,7 @@ type OrderRepository interface {
 	CreateOrders(orders []models.Order) ([]models.Order, error)
 	UpdateOrder(order models.Order) (models.Order, error)
 	UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error)
+	BulkUpdatePriceByVendorAndDetail(listmakID uint, updates []OrderPriceUpdate) error
 	DeleteOrder(id uint) error
 	UpdateVendorName(id uint, vendor string) error
 	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
@@ -104,6 +111,20 @@ func (r *orderRepository) UpdateOrdersPaidByName(listmakId uint, name string, is
 		return 0, err
 	}
 	return affected, nil
+}
+
+func (r *orderRepository) BulkUpdatePriceByVendorAndDetail(listmakID uint, updates []OrderPriceUpdate) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, u := range updates {
+			if err := tx.Model(&models.Order{}).
+				Where("listmak_id = ? AND LOWER(TRIM(vendor_name)) = LOWER(TRIM(?)) AND LOWER(TRIM(order_detail)) = LOWER(TRIM(?))",
+					listmakID, u.VendorName, u.OrderDetail).
+				Update("price", u.Price).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (r *orderRepository) DeleteOrder(id uint) error {

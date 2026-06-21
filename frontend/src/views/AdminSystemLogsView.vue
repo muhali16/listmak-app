@@ -103,22 +103,25 @@
           <thead>
             <tr>
               <th>Waktu</th>
+              <th>Req ID</th>
               <th>Method</th>
               <th>Path</th>
               <th>Status</th>
               <th>Latency</th>
-              <th>IP</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="log in logs" :key="log.id">
-              <td class="td-time">{{ formatTime(log.created_at) }}</td>
+              <td class="td-time">{{ formatTimeCompact(log.created_at) }}</td>
+              <td class="td-reqid">
+                <span v-if="log.request_id" class="reqid-badge" :title="log.request_id">{{ log.request_id.slice(0, 8) }}</span>
+                <span v-else class="td-empty">—</span>
+              </td>
               <td><span class="method-badge" :class="`method-${log.method?.toLowerCase()}`">{{ log.method }}</span></td>
               <td class="td-path" :title="log.path">{{ log.path }}</td>
               <td><span class="status-badge" :class="statusClass(log.status_code)">{{ log.status_code }}</span></td>
               <td class="td-latency">{{ log.latency }}</td>
-              <td class="td-ip">{{ log.client_ip }}</td>
               <td>
                 <button class="detail-btn" @click="detailLog = log">
                   <i class="pi pi-eye"></i>
@@ -320,6 +323,15 @@ export default {
       return new Date(iso).toLocaleString('id-ID', {
         day: '2-digit', month: 'short', year: 'numeric',
         hour: '2-digit', minute: '2-digit', second: '2-digit'
+      })
+    },
+
+    formatTimeCompact(iso) {
+      if (!iso) return '—'
+      const d = new Date(iso)
+      return d.toLocaleString('id-ID', {
+        day: '2-digit', month: 'short',
+        hour: '2-digit', minute: '2-digit'
       })
     },
 
@@ -589,13 +601,28 @@ export default {
   word-break: break-all;
 }
 
-.td-latency, .td-ip {
+.td-reqid { white-space: nowrap; }
+
+.reqid-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #818cf8;
+  letter-spacing: 0.02em;
+  cursor: default;
+}
+
+.td-empty { color: #334155; }
+
+.td-latency {
   white-space: nowrap;
   color: #64748b;
   font-size: 0.75rem;
 }
-
-.td-ip { font-family: monospace; }
 
 .method-badge {
   display: inline-block;

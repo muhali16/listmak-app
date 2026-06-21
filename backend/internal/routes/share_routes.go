@@ -25,6 +25,7 @@ func ShareRoutes(r *gin.RouterGroup, sc controllers.ShareController) {
 		shareLinks.GET("/:shareId/orders", sc.GetOrdersViaShare)
 		shareLinks.POST("/:shareId/orders", sc.SubmitOrderViaShare)
 		shareLinks.GET("/:shareId/food-suggestions", sc.GetFoodSuggestions)
+		shareLinks.POST("/:shareId/parse-orders", sc.ParseOrdersViaShare)
 	}
 
 	// View Shares

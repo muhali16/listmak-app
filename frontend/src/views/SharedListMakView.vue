@@ -138,8 +138,8 @@
           @click="submitSingle"
         >
           <i v-if="submitting" class="pi pi-spin pi-spinner"></i>
-          <i v-else class="pi pi-send"></i>
-          <span>{{ submitting ? 'Mengirim...' : 'Kirim pesanan' }}</span>
+          <i v-else class="pi pi-sparkles"></i>
+          <span>{{ submitting ? 'AI lagi parsing...' : 'Proses Pesanan' }}</span>
         </button>
       </div>
 
@@ -180,9 +180,81 @@
           @click="submitBulk"
         >
           <i v-if="submitting" class="pi pi-spin pi-spinner"></i>
-          <i v-else class="pi pi-send"></i>
-          <span>{{ submitting ? 'Mengirim...' : `Kirim ${parsedBulkOrders.length} pesanan` }}</span>
+          <i v-else class="pi pi-sparkles"></i>
+          <span>{{ submitting ? 'AI lagi parsing...' : `Proses ${parsedBulkOrders.length} pesanan` }}</span>
         </button>
+      </div>
+
+      <!-- AI Parse confirm modal -->
+      <div v-if="showConfirmModal" class="confirm-overlay">
+        <div class="confirm-sheet">
+          <div class="sheet-handle"></div>
+          <div class="confirm-header">
+            <h2 class="confirm-title">Konfirmasi Pesanan</h2>
+            <p class="confirm-subtitle">AI sudah parsing pesananmu. Cek & edit harga sebelum kirim.</p>
+          </div>
+
+          <div v-if="confirmItems.length === 0" class="confirm-empty">
+            Tidak ada pesanan terdeteksi.
+          </div>
+
+          <div v-else class="confirm-list">
+            <div
+              v-for="(item, i) in confirmItems"
+              :key="i"
+              class="confirm-item"
+            >
+              <div class="confirm-item-info">
+                <span class="confirm-item-name">{{ item.name }}</span>
+                <span class="confirm-item-detail">{{ item.order_detail }}</span>
+                <span v-if="item.vendor_name" class="confirm-item-vendor">
+                  <i class="pi pi-map-marker"></i> {{ item.vendor_name }}
+                </span>
+              </div>
+              <div class="confirm-item-price">
+                <span v-if="item.qty > 1" class="confirm-item-qty">{{ item.qty }}x</span>
+                <span class="confirm-rp">Rp</span>
+                <input
+                  v-model.number="item.editPrice"
+                  type="number"
+                  class="confirm-price-input"
+                  placeholder="0"
+                  min="0"
+                  :disabled="confirmingSubmit"
+                />
+                <button
+                  class="confirm-delete-btn"
+                  :disabled="confirmingSubmit"
+                  @click="removeConfirmItem(i)"
+                  title="Hapus item ini"
+                >
+                  <i class="pi pi-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="confirmError" class="form-error">{{ confirmError }}</p>
+
+          <button
+            class="submit-btn"
+            style="margin-top: 1rem"
+            :disabled="confirmingSubmit || confirmItems.length === 0"
+            @click="confirmSubmit"
+          >
+            <i v-if="confirmingSubmit" class="pi pi-spin pi-spinner"></i>
+            <i v-else class="pi pi-check"></i>
+            <span>{{ confirmingSubmit ? 'Mengirim...' : `Kirim ${confirmItems.length} pesanan` }}</span>
+          </button>
+
+          <button
+            class="cancel-confirm-btn"
+            :disabled="confirmingSubmit"
+            @click="cancelConfirm"
+          >
+            Batalkan
+          </button>
+        </div>
       </div>
 
       <!-- Orders list -->
@@ -246,7 +318,12 @@ export default {
       suggestions: [],
       showSuggestions: false,
       suggestionTimer: null,
-      orderDetailNudge: false
+      orderDetailNudge: false,
+      // AI confirm flow
+      showConfirmModal: false,
+      confirmItems: [],
+      confirmError: '',
+      confirmingSubmit: false,
     }
   },
 
@@ -409,21 +486,24 @@ export default {
     },
 
     async submitSingle() {
+      const name = this.singleForm.name.trim()
+      const order_detail = this.singleForm.order_detail.trim()
+      if (!name || !order_detail) return
       this.submitting = true
       this.submitError = ''
       this.submitSuccess = false
       try {
-        await share.submitShareOrder(this.shareId, {
-          name: this.singleForm.name.trim(),
-          order_detail: this.singleForm.order_detail.trim()
-        })
-        this.submitSuccess = true
-        this.submitSuccessMsg = ''
-        this.singleForm = { name: '', order_detail: '' }
-        await this.loadOrders()
-        setTimeout(() => { this.submitSuccess = false }, 4000)
+        const res = await share.parseOrders(this.shareId, [{ name, order_detail }])
+        const items = (res.data || []).map(item => ({ ...item, editPrice: item.estimated_price || 0 }))
+        if (items.length === 0) {
+          this.submitError = 'AI tidak bisa memproses pesanan ini. Coba tulis lebih jelas.'
+          return
+        }
+        this.confirmItems = items
+        this.confirmError = ''
+        this.showConfirmModal = true
       } catch (err) {
-        this.submitError = err.message || 'Gagal kirim. Coba lagi.'
+        this.submitError = err.message || 'Gagal proses pesanan. Coba lagi.'
       } finally {
         this.submitting = false
       }
@@ -435,17 +515,57 @@ export default {
       this.submitError = ''
       this.submitSuccess = false
       try {
-        const res = await share.submitShareOrder(this.shareId, { orders: this.parsedBulkOrders })
-        const count = res.data?.added_count || this.parsedBulkOrders.length
+        const res = await share.parseOrders(this.shareId, this.parsedBulkOrders)
+        const items = (res.data || []).map(item => ({ ...item, editPrice: item.estimated_price || 0 }))
+        if (items.length === 0) {
+          this.submitError = 'AI tidak bisa memproses pesanan. Coba tulis ulang.'
+          return
+        }
+        this.confirmItems = items
+        this.confirmError = ''
+        this.showConfirmModal = true
+      } catch (err) {
+        this.submitError = err.message || 'Gagal proses pesanan. Coba lagi.'
+      } finally {
+        this.submitting = false
+      }
+    },
+
+    removeConfirmItem(index) {
+      this.confirmItems.splice(index, 1)
+    },
+
+    cancelConfirm() {
+      this.showConfirmModal = false
+      this.confirmItems = []
+      this.confirmError = ''
+    },
+
+    async confirmSubmit() {
+      this.confirmingSubmit = true
+      this.confirmError = ''
+      try {
+        const orders = this.confirmItems.map(item => ({
+          name: item.name,
+          order_detail: item.order_detail,
+          vendor_name: item.vendor_name || '',
+          price: item.editPrice || 0,
+          qty: item.qty || 1,
+        }))
+        const res = await share.submitShareOrder(this.shareId, { orders })
+        const count = res.data?.added_count || orders.length
+        this.showConfirmModal = false
+        this.confirmItems = []
+        this.singleForm = { name: '', order_detail: '' }
+        this.bulkInput = ''
         this.submitSuccessMsg = `${count} pesanan berhasil dikirim!`
         this.submitSuccess = true
-        this.bulkInput = ''
         await this.loadOrders()
         setTimeout(() => { this.submitSuccess = false }, 4000)
       } catch (err) {
-        this.submitError = err.message || 'Gagal kirim. Coba lagi.'
+        this.confirmError = err.message || 'Gagal kirim. Coba lagi.'
       } finally {
-        this.submitting = false
+        this.confirmingSubmit = false
       }
     }
   }
@@ -1010,5 +1130,192 @@ export default {
   color: #f59e0b;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* Confirm modal */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.confirm-sheet {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: #0f172a;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem 1.25rem 0 0;
+  padding: 0 1.125rem 2rem;
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+
+.sheet-handle {
+  width: 2.5rem;
+  height: 0.25rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  margin: 0.75rem auto 1rem;
+}
+
+.confirm-header {
+  margin-bottom: 1rem;
+}
+
+.confirm-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 0.25rem;
+}
+
+.confirm-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.confirm-empty {
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.confirm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+
+.confirm-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+}
+
+.confirm-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.confirm-item-name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.confirm-item-detail {
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  overflow-wrap: anywhere;
+}
+
+.confirm-item-vendor {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  color: #64748b;
+}
+
+.confirm-item-vendor i {
+  font-size: 0.625rem;
+}
+
+.confirm-item-price {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.confirm-item-qty {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.3rem;
+  flex-shrink: 0;
+}
+
+.confirm-rp {
+  font-size: 0.75rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.confirm-price-input {
+  width: 5rem;
+  padding: 0.3rem 0.4rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.375rem;
+  color: #f1f5f9;
+  font-size: 0.8125rem;
+  text-align: right;
+}
+
+.confirm-price-input:focus {
+  outline: none;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.cancel-confirm-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.875rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cancel-confirm-btn:disabled { opacity: 0.5; }
+
+.confirm-delete-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.375rem;
+  color: #ef4444;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.confirm-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.confirm-delete-btn i {
+  font-size: 0.6875rem;
 }
 </style>

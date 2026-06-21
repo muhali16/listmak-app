@@ -20,6 +20,7 @@ type ShareController interface {
 	DeleteShareLink(c *gin.Context)
 	SubmitOrderViaShare(c *gin.Context)
 	GetOrdersViaShare(c *gin.Context)
+	ParseOrdersViaShare(c *gin.Context)
 
 	CreateViewShare(c *gin.Context)
 	GetViewShare(c *gin.Context)
@@ -31,12 +32,14 @@ type ShareController interface {
 type shareController struct {
 	shareService services.ShareService
 	orderService services.OrderService
+	aiService    services.AIService
 }
 
-func NewShareController(shareService services.ShareService, orderService services.OrderService) ShareController {
+func NewShareController(shareService services.ShareService, orderService services.OrderService, aiService services.AIService) ShareController {
 	return &shareController{
 		shareService: shareService,
 		orderService: orderService,
+		aiService:    aiService,
 	}
 }
 
@@ -193,7 +196,7 @@ func (sc *shareController) SubmitOrderViaShare(c *gin.Context) {
 		ordersToCreate[i].AddedVia = "sharelink"
 	}
 
-	count, _, err := sc.orderService.CreateOrdersBulk(share.ListmakID, ordersToCreate)
+	count, _, err := sc.orderService.CreateOrdersBulk(share.ListmakID, ordersToCreate, c.GetString("RequestID"))
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to create orders", nil)
 		return
@@ -298,6 +301,30 @@ func (sc *shareController) GetActiveSharesForListmak(c *gin.Context) {
 		"share_link": shareLink,
 		"view_share": viewShare,
 	})
+}
+
+func (sc *shareController) ParseOrdersViaShare(c *gin.Context) {
+	shareId := c.Param("shareId")
+	if _, err := sc.shareService.GetShareLink(shareId); err != nil {
+		utils.SendResponse(c, http.StatusNotFound, false, "Share link tidak valid", nil)
+		return
+	}
+
+	var payload struct {
+		Orders   []services.ParseOrderInput `json:"orders"`
+		Location string                     `json:"location"`
+	}
+	if err := c.ShouldBindJSON(&payload); err != nil || len(payload.Orders) == 0 {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid payload", nil)
+		return
+	}
+
+	items, err := sc.aiService.ParseOrders(c.GetString("RequestID"), payload.Orders, payload.Location)
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal parsing pesanan: "+err.Error(), nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "OK", items)
 }
 
 func (sc *shareController) GetFoodSuggestions(c *gin.Context) {

@@ -9,7 +9,7 @@ import (
 
 type AILogRepository interface {
 	Create(log *models.AILog) error
-	GetAll(page, limit int) ([]models.AILog, int64, error)
+	GetAll(page, limit int, status, search string) ([]models.AILog, int64, error)
 	DeleteOlderThan(before time.Time) (int64, error)
 }
 
@@ -25,14 +25,21 @@ func (r *aiLogRepository) Create(log *models.AILog) error {
 	return r.db.Create(log).Error
 }
 
-func (r *aiLogRepository) GetAll(page, limit int) ([]models.AILog, int64, error) {
+func (r *aiLogRepository) GetAll(page, limit int, status, search string) ([]models.AILog, int64, error) {
 	var logs []models.AILog
 	var total int64
 	offset := (page - 1) * limit
-	if err := r.db.Model(&models.AILog{}).Count(&total).Error; err != nil {
+	q := r.db.Model(&models.AILog{})
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	if search != "" {
+		q = q.Where("input ILIKE ?", "%"+search+"%")
+	}
+	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	if err := r.db.Order("created_at desc").Offset(offset).Limit(limit).Find(&logs).Error; err != nil {
+	if err := q.Order("created_at desc").Offset(offset).Limit(limit).Find(&logs).Error; err != nil {
 		return nil, 0, err
 	}
 	return logs, total, nil

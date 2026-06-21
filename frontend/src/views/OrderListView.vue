@@ -49,7 +49,7 @@
         </div>
 
         <template v-else>
-            <!-- Summary 2-column -->
+            <!-- Summary 3-column -->
             <div class="summary-card">
                 <div class="summary-item">
                     <span class="summary-value">{{
@@ -78,28 +78,38 @@
                         >Belum bayar</span
                     >
                 </div>
+                <div
+                    class="summary-divider"
+                ></div>
+                <div class="summary-item">
+                    <span
+                        class="summary-value summary-value--price"
+                        >Rp
+                        {{
+                            formatRupiah(
+                                totalPrice,
+                            )
+                        }}</span
+                    >
+                    <span class="summary-label"
+                        >Total harga</span
+                    >
+                </div>
             </div>
 
-            <!-- Vendor action row: AI scan + manual group toggle -->
-            <div class="vendor-action-row">
-                <button
-                    class="vendor-ai-btn"
-                    :disabled="scanningVendors"
-                    @click="scanVendors"
+            <!-- Ringkasan belanja -->
+            <button
+                class="ringkasan-btn"
+                @click="openSummary"
+            >
+                <span class="">
+                    <i class="pi pi-sparkles"></i>
+                </span>
+                <span
+                    >Ringkas Belanjaan Pakai
+                    AI</span
                 >
-                    <i v-if="scanningVendors" class="pi pi-spin pi-spinner"></i>
-                    <i v-else class="pi pi-microchip-ai"></i>
-                    <span>{{ scanningVendors ? 'Mendeteksi...' : 'Scan AI' }}</span>
-                </button>
-                <button
-                    class="vendor-group-btn"
-                    :class="{ 'vendor-group-btn--active': groupMode === 'vendor' }"
-                    @click="toggleVendorGroup"
-                >
-                    <i class="pi pi-map-marker"></i>
-                    <span>{{ groupMode === 'vendor' ? 'Per nama' : 'Per lokasi' }}</span>
-                </button>
-            </div>
+            </button>
 
             <!-- Add order — full-width, explicit label -->
             <button
@@ -112,7 +122,9 @@
 
             <!-- Search -->
             <div class="search-wrap">
-                <i class="pi pi-search search-icon"></i>
+                <i
+                    class="pi pi-search search-icon"
+                ></i>
                 <input
                     v-model="searchQuery"
                     class="search-input"
@@ -123,22 +135,32 @@
 
             <!-- Empty -->
             <div
-                v-if="(groupMode === 'name' ? filteredGroups : vendorFilteredGroups).length === 0"
+                v-if="filteredGroups.length === 0"
                 class="state-block empty"
             >
                 <div class="empty-icon">
                     <i class="pi pi-inbox"></i>
                 </div>
-                <h3>{{ searchQuery ? 'Tidak ada hasil' : 'Belum ada pesanan' }}</h3>
+                <h3>
+                    {{
+                        searchQuery
+                            ? "Tidak ada hasil"
+                            : "Belum ada pesanan"
+                    }}
+                </h3>
                 <p>
-                    {{ searchQuery ? 'Coba kata kunci lain.' : 'Tekan "+ Tambah pesanan" untuk mulai.' }}
+                    {{
+                        searchQuery
+                            ? "Coba kata kunci lain."
+                            : 'Tekan "+ Tambah pesanan" untuk mulai.'
+                    }}
                 </p>
             </div>
 
             <!-- Grouped list -->
             <section v-else class="groups">
                 <article
-                    v-for="group in groupMode === 'name' ? visibleGroups : vendorFilteredGroups"
+                    v-for="group in visibleGroups"
                     :key="group.key"
                     class="group-card"
                 >
@@ -162,7 +184,6 @@
                             >
                         </div>
                         <button
-                            v-if="groupMode === 'name'"
                             class="paid-btn"
                             :class="{
                                 'paid-btn--paid':
@@ -216,7 +237,9 @@
                             :key="order.id"
                             class="item-row"
                         >
-                            <div class="item-row-main">
+                            <div
+                                class="item-row-main"
+                            >
                                 <div
                                     class="item-info"
                                 >
@@ -233,12 +256,35 @@
                                                 0
                                         "
                                         class="item-no-price"
+                                        :class="{
+                                            'item-no-price--estimated':
+                                                orderEstimates[
+                                                    order
+                                                        .order_detail
+                                                ],
+                                        }"
                                     >
                                         <i
+                                            v-if="
+                                                !orderEstimates[
+                                                    order
+                                                        .order_detail
+                                                ]
+                                            "
                                             class="pi pi-exclamation-circle"
                                         ></i>
-                                        harga belum
-                                        diisi
+                                        <i
+                                            v-else
+                                            class="pi pi-sparkles"
+                                        ></i>
+                                        {{
+                                            orderEstimates[
+                                                order
+                                                    .order_detail
+                                            ]
+                                                ? `~Rp ${formatRupiah(orderEstimates[order.order_detail])} (estimasi)`
+                                                : "harga belum diisi"
+                                        }}
                                     </span>
                                     <span
                                         v-else
@@ -278,32 +324,101 @@
                                         class="pi pi-pencil"
                                     ></i>
                                 </button>
+                                <button
+                                    class="delete-btn-inline"
+                                    @click="
+                                        quickDeleteOrder(
+                                            order,
+                                        )
+                                    "
+                                    title="Hapus pesanan"
+                                >
+                                    <i
+                                        class="pi pi-trash"
+                                    ></i>
+                                </button>
                             </div>
 
-                            <div class="vendor-chip-row">
-                                <template v-if="editingVendorId === order.id">
+                            <div
+                                class="vendor-chip-row"
+                            >
+                                <template
+                                    v-if="
+                                        editingVendorId ===
+                                        order.id
+                                    "
+                                >
                                     <input
-                                        v-model="editingVendorValue"
+                                        v-model="
+                                            editingVendorValue
+                                        "
                                         class="vendor-edit-input"
                                         :list="`vl-${order.id}`"
                                         placeholder="Nama lokasi beli"
-                                        @keyup.enter="saveVendor(order)"
-                                        @keyup.escape="cancelEditVendor"
+                                        @keyup.enter="
+                                            saveVendor(
+                                                order,
+                                            )
+                                        "
+                                        @keyup.escape="
+                                            cancelEditVendor
+                                        "
                                     />
-                                    <datalist :id="`vl-${order.id}`">
-                                        <option v-for="v in existingVendors" :key="v" :value="v" />
+                                    <datalist
+                                        :id="`vl-${order.id}`"
+                                    >
+                                        <option
+                                            v-for="v in existingVendors"
+                                            :key="
+                                                v
+                                            "
+                                            :value="
+                                                v
+                                            "
+                                        />
                                     </datalist>
-                                    <button class="vendor-save-btn" @click="saveVendor(order)">
-                                        <i class="pi pi-check"></i>
+                                    <button
+                                        class="vendor-save-btn"
+                                        @click="
+                                            saveVendor(
+                                                order,
+                                            )
+                                        "
+                                    >
+                                        <i
+                                            class="pi pi-check"
+                                        ></i>
                                     </button>
-                                    <button class="vendor-cancel-btn" @click="cancelEditVendor">
-                                        <i class="pi pi-times"></i>
+                                    <button
+                                        class="vendor-cancel-btn"
+                                        @click="
+                                            cancelEditVendor
+                                        "
+                                    >
+                                        <i
+                                            class="pi pi-times"
+                                        ></i>
                                     </button>
                                 </template>
-                                <button v-else class="vendor-chip" @click="startEditVendor(order)">
-                                    <i class="pi pi-map-marker"></i>
-                                    <span>{{ order.vendor_name || 'Tambah lokasi' }}</span>
-                                    <i class="pi pi-pencil vendor-chip-edit-icon"></i>
+                                <button
+                                    v-else
+                                    class="vendor-chip"
+                                    @click="
+                                        startEditVendor(
+                                            order,
+                                        )
+                                    "
+                                >
+                                    <i
+                                        class="pi pi-map-marker"
+                                    ></i>
+                                    <span>{{
+                                        order.vendor_name ||
+                                        "Tambah lokasi"
+                                    }}</span>
+                                    <i
+                                        class="pi pi-pencil vendor-chip-edit-icon"
+                                    ></i>
                                 </button>
                             </div>
                         </li>
@@ -312,7 +427,7 @@
 
                 <!-- Explicit load-more — no infinite scroll -->
                 <button
-                    v-if="groupMode === 'name' && hasMore"
+                    v-if="hasMore"
                     class="load-more-btn"
                     @click="loadMore"
                 >
@@ -349,69 +464,220 @@
                 v-if="shareMode === 'choose'"
                 class="sheet-section"
             >
-                <h2 class="sheet-title">Bagikan</h2>
-                <p class="share-subtitle">{{ listmakTitle }}</p>
+                <h2 class="sheet-title">
+                    Bagikan
+                </h2>
+                <p class="share-subtitle">
+                    {{ listmakTitle }}
+                </p>
 
                 <!-- Section A: Isi pesanan -->
                 <div class="share-section">
-                    <div v-if="activeShareLink && !forceNew" class="existing-link-box">
-                        <span class="existing-link-url">{{ shareLinkUrl }}</span>
-                        <span class="existing-link-meta">{{ shareLinkExpiryLabel }}</span>
-                        <div class="existing-link-btns">
-                            <button class="submit-btn" style="flex:1" @click="copyLinkMessage('input', shareLinkUrl)">
-                                <i class="pi pi-copy"></i> Salin
+                    <div
+                        v-if="
+                            activeShareLink &&
+                            !forceNew
+                        "
+                        class="existing-link-box"
+                    >
+                        <span
+                            class="existing-link-url"
+                            >{{
+                                shareLinkUrl
+                            }}</span
+                        >
+                        <span
+                            class="existing-link-meta"
+                            >{{
+                                shareLinkExpiryLabel
+                            }}</span
+                        >
+                        <div
+                            class="existing-link-btns"
+                        >
+                            <button
+                                class="submit-btn"
+                                style="flex: 1"
+                                @click="
+                                    copyLinkMessage(
+                                        'input',
+                                        shareLinkUrl,
+                                    )
+                                "
+                            >
+                                <i
+                                    class="pi pi-copy"
+                                ></i>
+                                Salin
                             </button>
-                            <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('input', shareLinkUrl)">
-                                <i class="pi pi-whatsapp"></i> WA
+                            <button
+                                class="submit-btn wa-btn"
+                                style="flex: 1"
+                                @click="
+                                    shareLinkViaWa(
+                                        'input',
+                                        shareLinkUrl,
+                                    )
+                                "
+                            >
+                                <i
+                                    class="pi pi-whatsapp"
+                                ></i>
+                                WA
                             </button>
                         </div>
-                        <button class="new-link-btn" @click="forceNew = true; shareMode = 'expiry'">
+                        <button
+                            class="new-link-btn"
+                            @click="
+                                forceNew = true;
+                                shareMode =
+                                    'expiry';
+                            "
+                        >
                             Buat link baru
                         </button>
                     </div>
-                    <button v-else class="mode-btn" :disabled="shareLoading" @click="shareMode = 'expiry'">
-                        <i class="pi pi-pencil"></i>
-                        <span class="mode-btn-label">Buat link isi pesanan</span>
-                        <span class="mode-btn-desc">Share ke grup, karyawan tinggal klik dan isi pesanannya</span>
+                    <button
+                        v-else
+                        class="mode-btn"
+                        :disabled="shareLoading"
+                        @click="
+                            shareMode = 'expiry'
+                        "
+                    >
+                        <i
+                            class="pi pi-pencil"
+                        ></i>
+                        <span
+                            class="mode-btn-label"
+                            >Buat link isi
+                            pesanan</span
+                        >
+                        <span
+                            class="mode-btn-desc"
+                            >Share ke grup,
+                            karyawan tinggal klik
+                            dan isi
+                            pesanannya</span
+                        >
                     </button>
                 </div>
 
                 <!-- Section B: Lihat daftar -->
                 <div class="share-section">
-                    <div v-if="activeViewShare" class="existing-link-box">
-                        <span class="existing-link-url">{{ viewShareUrl }}</span>
-                        <div class="existing-link-btns">
-                            <button class="submit-btn" style="flex:1" @click="copyLinkMessage('view', viewShareUrl)">
-                                <i class="pi pi-copy"></i> Salin
+                    <div
+                        v-if="activeViewShare"
+                        class="existing-link-box"
+                    >
+                        <span
+                            class="existing-link-url"
+                            >{{
+                                viewShareUrl
+                            }}</span
+                        >
+                        <div
+                            class="existing-link-btns"
+                        >
+                            <button
+                                class="submit-btn"
+                                style="flex: 1"
+                                @click="
+                                    copyLinkMessage(
+                                        'view',
+                                        viewShareUrl,
+                                    )
+                                "
+                            >
+                                <i
+                                    class="pi pi-copy"
+                                ></i>
+                                Salin
                             </button>
-                            <button class="submit-btn wa-btn" style="flex:1" @click="shareLinkViaWa('view', viewShareUrl)">
-                                <i class="pi pi-whatsapp"></i> WA
+                            <button
+                                class="submit-btn wa-btn"
+                                style="flex: 1"
+                                @click="
+                                    shareLinkViaWa(
+                                        'view',
+                                        viewShareUrl,
+                                    )
+                                "
+                            >
+                                <i
+                                    class="pi pi-whatsapp"
+                                ></i>
+                                WA
                             </button>
                         </div>
-                        <button class="new-link-btn" @click="createViewLink">
+                        <button
+                            class="new-link-btn"
+                            @click="
+                                createViewLink
+                            "
+                        >
                             Buat link baru
                         </button>
                     </div>
-                    <button v-else class="mode-btn" :disabled="shareLoading" @click="createViewLink">
+                    <button
+                        v-else
+                        class="mode-btn"
+                        :disabled="shareLoading"
+                        @click="createViewLink"
+                    >
                         <i class="pi pi-eye"></i>
-                        <span class="mode-btn-label">Buat link lihat daftar</span>
-                        <span class="mode-btn-desc">Buat yang cuma mau pantau daftar pesanan, tanpa bisa ubah apa-apa</span>
+                        <span
+                            class="mode-btn-label"
+                            >Buat link lihat
+                            daftar</span
+                        >
+                        <span
+                            class="mode-btn-desc"
+                            >Buat yang cuma mau
+                            pantau daftar pesanan,
+                            tanpa bisa ubah
+                            apa-apa</span
+                        >
                     </button>
                 </div>
 
                 <!-- Section C: Salin teks -->
                 <div class="share-section">
-                    <button class="mode-btn" @click="copyOrderText">
+                    <button
+                        class="mode-btn"
+                        @click="copyOrderText"
+                    >
                         <i class="pi pi-copy"></i>
-                        <span class="mode-btn-label">Salin daftar pesanan</span>
-                        <span class="mode-btn-desc">Langsung copy semua pesanan + total + status bayar — cocok dishare ke WA</span>
+                        <span
+                            class="mode-btn-label"
+                            >Salin daftar
+                            pesanan</span
+                        >
+                        <span
+                            class="mode-btn-desc"
+                            >Langsung copy semua
+                            pesanan + total +
+                            status bayar — cocok
+                            dishare ke WA</span
+                        >
                     </button>
                 </div>
 
-                <p v-if="shareError" class="form-error">{{ shareError }}</p>
-                <div v-if="shareLoading" class="share-loading">
-                    <i class="pi pi-spin pi-spinner"></i>
-                    <span>Lagi bikin link...</span>
+                <p
+                    v-if="shareError"
+                    class="form-error"
+                >
+                    {{ shareError }}
+                </p>
+                <div
+                    v-if="shareLoading"
+                    class="share-loading"
+                >
+                    <i
+                        class="pi pi-spin pi-spinner"
+                    ></i>
+                    <span
+                        >Lagi bikin link...</span
+                    >
                 </div>
 
                 <button
@@ -424,37 +690,78 @@
             </div>
 
             <!-- Expiry picker -->
-            <div v-else-if="shareMode === 'expiry'" class="sheet-section">
+            <div
+                v-else-if="shareMode === 'expiry'"
+                class="sheet-section"
+            >
                 <div class="sheet-nav">
-                    <button class="sheet-back-btn" @click="shareMode = 'choose'; forceNew = false">
-                        <i class="pi pi-arrow-left"></i>
+                    <button
+                        class="sheet-back-btn"
+                        @click="
+                            shareMode = 'choose';
+                            forceNew = false;
+                        "
+                    >
+                        <i
+                            class="pi pi-arrow-left"
+                        ></i>
                     </button>
-                    <h2 class="sheet-title">Batas waktu link</h2>
+                    <h2 class="sheet-title">
+                        Batas waktu link
+                    </h2>
                 </div>
 
-                <p class="share-subtitle">Link akan kedaluwarsa setelah waktu yang kamu pilih.</p>
+                <p class="share-subtitle">
+                    Link akan kedaluwarsa setelah
+                    waktu yang kamu pilih.
+                </p>
 
                 <div class="expiry-chips">
                     <button
                         v-for="opt in expiryOptions"
                         :key="opt.value"
                         class="expiry-chip"
-                        :class="{ 'expiry-chip--active': selectedExpiry === opt.value }"
-                        @click="selectedExpiry = opt.value; customExpiryDate = ''"
+                        :class="{
+                            'expiry-chip--active':
+                                selectedExpiry ===
+                                opt.value,
+                        }"
+                        @click="
+                            selectedExpiry =
+                                opt.value;
+                            customExpiryDate = '';
+                        "
                     >
                         {{ opt.label }}
                     </button>
                     <button
                         class="expiry-chip"
-                        :class="{ 'expiry-chip--active': selectedExpiry === 'custom' }"
-                        @click="selectedExpiry = 'custom'"
+                        :class="{
+                            'expiry-chip--active':
+                                selectedExpiry ===
+                                'custom',
+                        }"
+                        @click="
+                            selectedExpiry =
+                                'custom'
+                        "
                     >
                         Pilih sendiri
                     </button>
                 </div>
 
-                <div v-if="selectedExpiry === 'custom'" class="form-group" style="margin-top: 0.75rem">
-                    <label class="form-label">Tanggal & jam kedaluwarsa</label>
+                <div
+                    v-if="
+                        selectedExpiry ===
+                        'custom'
+                    "
+                    class="form-group"
+                    style="margin-top: 0.75rem"
+                >
+                    <label class="form-label"
+                        >Tanggal & jam
+                        kedaluwarsa</label
+                    >
                     <input
                         v-model="customExpiryDate"
                         type="datetime-local"
@@ -463,19 +770,40 @@
                     />
                 </div>
 
-                <p v-if="shareError" class="form-error">{{ shareError }}</p>
+                <p
+                    v-if="shareError"
+                    class="form-error"
+                >
+                    {{ shareError }}
+                </p>
 
                 <button
                     class="submit-btn"
                     style="margin-top: 1rem"
-                    :disabled="shareLoading || (selectedExpiry === 'custom' && !customExpiryDate)"
+                    :disabled="
+                        shareLoading ||
+                        (selectedExpiry ===
+                            'custom' &&
+                            !customExpiryDate)
+                    "
                     @click="createInputLink"
                 >
-                    <i v-if="shareLoading" class="pi pi-spin pi-spinner"></i>
-                    <span>{{ shareLoading ? 'Bikin link...' : 'Buat link' }}</span>
+                    <i
+                        v-if="shareLoading"
+                        class="pi pi-spin pi-spinner"
+                    ></i>
+                    <span>{{
+                        shareLoading
+                            ? "Bikin link..."
+                            : "Buat link"
+                    }}</span>
                 </button>
 
-                <button class="sheet-cancel-btn" style="margin-top: 0.75rem" @click="closeShareModal">
+                <button
+                    class="sheet-cancel-btn"
+                    style="margin-top: 0.75rem"
+                    @click="closeShareModal"
+                >
                     Nanti dulu
                 </button>
             </div>
@@ -500,7 +828,8 @@
                 </h2>
                 <p class="share-result-type">
                     {{
-                        shareResult.type === "input"
+                        shareResult.type ===
+                        "input"
                             ? "Link isi pesanan · aktif 7 hari"
                             : "Link lihat daftar"
                     }}
@@ -525,7 +854,22 @@
 
                 <button
                     class="submit-btn"
-                    style="margin-top: 0.5rem; background: rgba(30,41,59,0.8); border: 1px solid rgba(255,255,255,0.08);"
+                    style="
+                        margin-top: 0.5rem;
+                        background: rgba(
+                            30,
+                            41,
+                            59,
+                            0.8
+                        );
+                        border: 1px solid
+                            rgba(
+                                255,
+                                255,
+                                255,
+                                0.08
+                            );
+                    "
                     @click="copyShareUrl"
                 >
                     <i class="pi pi-copy"></i>
@@ -539,6 +883,226 @@
                 >
                     Tutup
                 </button>
+            </div>
+        </div>
+
+        <!-- Ringkasan backdrop -->
+        <div
+            v-if="showSummaryModal"
+            class="sheet-backdrop"
+            @click="closeSummaryModal"
+        ></div>
+
+        <!-- Ringkasan bottom sheet -->
+        <div
+            class="bottom-sheet"
+            :class="{
+                'bottom-sheet--open':
+                    showSummaryModal,
+            }"
+        >
+            <div class="sheet-handle"></div>
+            <div class="sheet-section">
+                <!-- Summary view with inline price editing -->
+                <template
+                    v-if="
+                        summaryMode === 'summary'
+                    "
+                >
+                    <div class="sheet-nav">
+                        <h2
+                            class="sheet-title"
+                            style="margin: 0"
+                        >
+                            Ringkasan Belanja
+                        </h2>
+                    </div>
+
+                    <div
+                        v-if="summaryLoading"
+                        class="summary-loading"
+                    >
+                        <i
+                            class="pi pi-spin pi-spinner"
+                        ></i>
+                        <span
+                            >AI sedang menyusun
+                            ringkasan...</span
+                        >
+                    </div>
+
+                    <p
+                        v-else-if="summaryError"
+                        class="form-error"
+                    >
+                        {{ summaryError }}
+                    </p>
+
+                    <template
+                        v-else-if="summaryData"
+                    >
+                        <div
+                            v-for="vendor in summaryData.vendors"
+                            :key="vendor.name"
+                            class="summary-vendor-block"
+                        >
+                            <div
+                                class="summary-vendor-header"
+                            >
+                                <i
+                                    class="pi pi-map-marker"
+                                ></i>
+                                <span>{{
+                                    vendor.name
+                                }}</span>
+                            </div>
+                            <ul
+                                class="summary-item-list"
+                            >
+                                <li
+                                    v-for="item in vendor.items"
+                                    :key="
+                                        item.name
+                                    "
+                                    class="summary-item-row"
+                                >
+                                    <div
+                                        class="summary-item-left"
+                                    >
+                                        <span
+                                            class="summary-item-name"
+                                            >{{
+                                                item.name
+                                            }}</span
+                                        >
+                                        <span
+                                            class="summary-item-qty"
+                                            >{{
+                                                item.qty
+                                            }}x</span
+                                        >
+                                    </div>
+                                    <div
+                                        class="summary-item-price-edit"
+                                    >
+                                        <span
+                                            v-if="
+                                                item.is_estimated
+                                            "
+                                            class="ai-estimate-badge"
+                                            title="Harga diestimasi oleh AI — mungkin tidak akurat"
+                                        >
+                                            <i
+                                                class="pi pi-exclamation-triangle"
+                                            ></i>
+                                            AI
+                                        </span>
+                                        <span
+                                            class="sum-edit-rp"
+                                            >Rp</span
+                                        >
+                                        <input
+                                            v-model.number="
+                                                confirmPriceMap[
+                                                    `${vendor.name}::${item.name}`
+                                                ]
+                                            "
+                                            type="number"
+                                            class="sum-price-input"
+                                            placeholder="0"
+                                            min="0"
+                                            :disabled="
+                                                confirmingPrices
+                                            "
+                                        />
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div
+                            class="summary-total-row"
+                        >
+                            <span>Total</span>
+                            <span
+                                >Rp
+                                {{
+                                    formatRupiah(
+                                        summaryEditedTotal,
+                                    )
+                                }}</span
+                            >
+                        </div>
+
+                        <p
+                            v-if="
+                                summaryData.confirmed_at
+                            "
+                            class="summary-confirmed-label"
+                        >
+                            <i
+                                class="pi pi-check-circle"
+                            ></i>
+                            Harga dikonfirmasi
+                        </p>
+
+                        <p
+                            class="confirm-hint-text"
+                        >
+                            <span class="">
+                                <i
+                                    class="pi pi-sparkles"
+                                ></i>
+                            </span>
+                            AI sudah sesuaikan
+                            pesananmu. Cek & edit
+                            harga sebelum simpan.
+                        </p>
+
+                        <p
+                            v-if="confirmError"
+                            class="form-error"
+                            style="
+                                margin-top: 0.5rem;
+                            "
+                        >
+                            {{ confirmError }}
+                        </p>
+
+                        <button
+                            class="submit-btn"
+                            style="
+                                margin-top: 0.75rem;
+                            "
+                            :disabled="
+                                confirmingPrices
+                            "
+                            @click="
+                                submitConfirmPrices
+                            "
+                        >
+                            <i
+                                v-if="
+                                    confirmingPrices
+                                "
+                                class="pi pi-spin pi-spinner"
+                            ></i>
+                            <span>{{
+                                confirmingPrices
+                                    ? "Menyimpan..."
+                                    : "Simpan Harga"
+                            }}</span>
+                        </button>
+                    </template>
+
+                    <button
+                        class="sheet-cancel-btn"
+                        style="margin-top: 1rem"
+                        @click="closeSummaryModal"
+                    >
+                        Tutup
+                    </button>
+                </template>
             </div>
         </div>
 
@@ -863,10 +1427,14 @@
                         v-if="addSubmitting"
                         class="pi pi-spin pi-spinner"
                     ></i>
+                    <i
+                        v-else
+                        class="pi pi-sparkles"
+                    ></i>
                     <span>{{
                         addSubmitting
-                            ? "Menyimpan..."
-                            : "Simpan pesanan"
+                            ? "AI lagi sesuaikan..."
+                            : "Proses Pesanan"
                     }}</span>
                 </button>
             </div>
@@ -985,10 +1553,165 @@
                         v-if="addSubmitting"
                         class="pi pi-spin pi-spinner"
                     ></i>
+                    <i
+                        v-else
+                        class="pi pi-sparkles"
+                    ></i>
+                    <span>{{
+                        addSubmitting
+                            ? "AI lagi sesuaikan..."
+                            : `Proses ${parsedBulkOrders.length} pesanan`
+                    }}</span>
+                </button>
+            </div>
+
+            <!-- Confirm mode -->
+            <div
+                v-else-if="addMode === 'confirm'"
+                class="sheet-section"
+            >
+                <div class="sheet-nav">
+                    <button
+                        class="sheet-back-btn"
+                        @click="
+                            addMode =
+                                preParsedMode
+                        "
+                        :disabled="addSubmitting"
+                    >
+                        <i
+                            class="pi pi-arrow-left"
+                        ></i>
+                    </button>
+                    <h2 class="sheet-title">
+                        Konfirmasi Pesanan
+                    </h2>
+                </div>
+
+                <p class="confirm-hint-text">
+                    <span class="">
+                        <i
+                            class="pi pi-sparkles"
+                        ></i>
+                    </span>
+                    AI sudah sesuaikan pesananmu.
+                    Cek & edit harga sebelum
+                    simpan.
+                </p>
+
+                <div class="confirm-items-list">
+                    <div
+                        v-for="(
+                            item, i
+                        ) in confirmItems"
+                        :key="i"
+                        class="confirm-order-item"
+                    >
+                        <div
+                            class="confirm-order-info"
+                        >
+                            <span
+                                class="confirm-order-name"
+                                >{{
+                                    item.name
+                                }}</span
+                            >
+                            <span
+                                class="confirm-order-detail"
+                                >{{
+                                    item.order_detail
+                                }}</span
+                            >
+                            <span
+                                v-if="
+                                    item.vendor_name
+                                "
+                                class="confirm-order-vendor"
+                            >
+                                <i
+                                    class="pi pi-map-marker"
+                                ></i>
+                                {{
+                                    item.vendor_name
+                                }}
+                            </span>
+                        </div>
+                        <div
+                            class="confirm-order-price-wrap"
+                        >
+                            <span
+                                v-if="
+                                    item.qty > 1
+                                "
+                                class="confirm-order-qty"
+                                >{{
+                                    item.qty
+                                }}x</span
+                            >
+                            <span
+                                class="confirm-order-rp"
+                                >Rp</span
+                            >
+                            <input
+                                v-model.number="
+                                    item.editPrice
+                                "
+                                type="number"
+                                class="confirm-order-price-input"
+                                placeholder="0"
+                                min="0"
+                                :disabled="
+                                    addSubmitting
+                                "
+                            />
+                            <button
+                                class="confirm-order-delete-btn"
+                                :disabled="
+                                    addSubmitting
+                                "
+                                @click="
+                                    removeConfirmItem(
+                                        i,
+                                    )
+                                "
+                                title="Hapus item ini"
+                            >
+                                <i
+                                    class="pi pi-times"
+                                ></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <p
+                    v-if="addError"
+                    class="form-error"
+                >
+                    {{ addError }}
+                </p>
+
+                <button
+                    class="submit-btn"
+                    style="margin-top: 0.75rem"
+                    :disabled="
+                        addSubmitting ||
+                        confirmItems.length === 0
+                    "
+                    @click="confirmOrders"
+                >
+                    <i
+                        v-if="addSubmitting"
+                        class="pi pi-spin pi-spinner"
+                    ></i>
+                    <i
+                        v-else
+                        class="pi pi-check"
+                    ></i>
                     <span>{{
                         addSubmitting
                             ? "Menyimpan..."
-                            : `Simpan ${parsedBulkOrders.length} pesanan`
+                            : `Simpan ${confirmItems.length} pesanan`
                     }}</span>
                 </button>
             </div>
@@ -1050,13 +1773,27 @@ export default {
             forceNew: false,
             // search
             searchQuery: "",
-            // vendor group mode
-            groupMode: 'name',
-            scanningVendors: false,
-            scanVendorError: '',
             // vendor edit
             editingVendorId: null,
             editingVendorValue: "",
+            // summary modal
+            showSummaryModal: false,
+            summaryMode: "summary",
+            summaryData: null,
+            summaryLoading: false,
+            summaryError: "",
+            // confirm prices
+            confirmPriceMap: {},
+            confirmingPrices: false,
+            confirmError: "",
+            // async price estimates keyed by order_detail
+            orderEstimates: {},
+            // geolocation for AI price context
+            userLocation: null,
+            userLocationName: "",
+            // AI parse confirm flow
+            confirmItems: [],
+            preParsedMode: "single",
         };
     },
 
@@ -1150,6 +1887,30 @@ export default {
             return this.orders.length;
         },
 
+        totalPrice() {
+            return this.orders.reduce(
+                (sum, o) =>
+                    sum +
+                    (o.price || 0) * (o.qty || 1),
+                0,
+            );
+        },
+
+        summaryEditedTotal() {
+            if (!this.summaryData) return 0;
+            let total = 0;
+            for (const vendor of this.summaryData
+                .vendors) {
+                for (const item of vendor.items) {
+                    total +=
+                        (this.confirmPriceMap[
+                            `${vendor.name}::${item.name}`
+                        ] || 0) * item.qty;
+                }
+            }
+            return total;
+        },
+
         unpaidGroupCount() {
             return this.groups.filter(
                 (g) => !g.allPaid,
@@ -1193,12 +1954,17 @@ export default {
         shareLinkExpiryLabel() {
             if (!this.activeShareLink) return "";
             const msLeft =
-                new Date(this.activeShareLink.expires_at) - Date.now();
+                new Date(
+                    this.activeShareLink
+                        .expires_at,
+                ) - Date.now();
             const daysLeft = Math.ceil(
                 msLeft / (1000 * 60 * 60 * 24),
             );
-            if (daysLeft <= 0) return "kedaluwarsa";
-            if (daysLeft === 1) return "exp. besok";
+            if (daysLeft <= 0)
+                return "kedaluwarsa";
+            if (daysLeft === 1)
+                return "exp. besok";
             return `exp. ${daysLeft} hari lagi`;
         },
         expiryOptions() {
@@ -1206,45 +1972,58 @@ export default {
                 { value: "1d", label: "1 hari" },
                 { value: "3d", label: "3 hari" },
                 { value: "7d", label: "7 hari" },
-                { value: "30d", label: "30 hari" },
+                {
+                    value: "30d",
+                    label: "30 hari",
+                },
             ];
         },
         minCustomExpiry() {
-            const now = new Date(Date.now() + 60 * 60 * 1000);
+            const now = new Date(
+                Date.now() + 60 * 60 * 1000,
+            );
             return now.toISOString().slice(0, 16);
         },
 
         existingVendors() {
-            return [...new Set((this.orders || []).map(o => o.vendor_name).filter(Boolean))].sort((a, b) =>
-                a.localeCompare(b, 'id')
-            )
+            return [
+                ...new Set(
+                    (this.orders || [])
+                        .map((o) => o.vendor_name)
+                        .filter(Boolean),
+                ),
+            ].sort((a, b) =>
+                a.localeCompare(b, "id"),
+            );
         },
 
         vendorGroups() {
-            const map = new Map()
+            const map = new Map();
             for (const order of this.orders) {
-                const key = order.vendor_name || ''
-                const display = order.vendor_name || 'Belum ada lokasi'
+                const key =
+                    order.vendor_name || "";
+                const display =
+                    order.vendor_name ||
+                    "Belum ada lokasi";
                 if (!map.has(key)) {
-                    map.set(key, { key, name: display, orders: [] })
+                    map.set(key, {
+                        key,
+                        name: display,
+                        orders: [],
+                    });
                 }
-                map.get(key).orders.push(order)
+                map.get(key).orders.push(order);
             }
-            return Array.from(map.values()).sort((a, b) => {
-                if (!a.key) return 1
-                if (!b.key) return -1
-                return a.name.localeCompare(b.name, 'id')
-            })
-        },
-
-        vendorFilteredGroups() {
-            if (!this.searchQuery.trim()) return this.vendorGroups
-            const q = this.searchQuery.trim().toLowerCase()
-            return this.vendorGroups.filter(
-                g =>
-                    g.name.toLowerCase().includes(q) ||
-                    g.orders.some(o => o.order_detail.toLowerCase().includes(q))
-            )
+            return Array.from(map.values()).sort(
+                (a, b) => {
+                    if (!a.key) return 1;
+                    if (!b.key) return -1;
+                    return a.name.localeCompare(
+                        b.name,
+                        "id",
+                    );
+                },
+            );
         },
     },
 
@@ -1262,7 +2041,8 @@ export default {
     methods: {
         startEditVendor(order) {
             this.editingVendorId = order.id;
-            this.editingVendorValue = order.vendor_name || "";
+            this.editingVendorValue =
+                order.vendor_name || "";
         },
 
         cancelEditVendor() {
@@ -1270,36 +2050,249 @@ export default {
             this.editingVendorValue = "";
         },
 
-        toggleVendorGroup() {
-            this.groupMode = this.groupMode === 'vendor' ? 'name' : 'vendor'
+        async openSummary() {
+            this.showSummaryModal = true;
+            this.summaryMode = "summary";
+            this.summaryError = "";
+            await this.resolveLocation();
+            if (!this.summaryData) {
+                await this.fetchSummary();
+            } else {
+                this.initPriceMap();
+            }
         },
 
-        async scanVendors() {
-            this.scanningVendors = true
-            this.scanVendorError = ''
-            try {
-                const res = await listmak.scanVendors(this.listmakId)
-                if (res.success && res.data) {
-                    this.orders = Array.isArray(res.data) ? res.data : []
+        initPriceMap() {
+            if (!this.summaryData) return;
+            const map = {};
+            for (const vendor of this.summaryData
+                .vendors) {
+                for (const item of vendor.items) {
+                    map[
+                        `${vendor.name}::${item.name}`
+                    ] =
+                        item.unit_price_actual ??
+                        item.unit_price ??
+                        0;
                 }
-                this.groupMode = 'vendor'
+            }
+            this.confirmPriceMap = map;
+        },
+
+        closeSummaryModal() {
+            this.showSummaryModal = false;
+        },
+
+        resolveLocation() {
+            if (
+                this.userLocation ||
+                !navigator.geolocation
+            )
+                return Promise.resolve();
+            return new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                        const lat =
+                            pos.coords.latitude;
+                        const lng =
+                            pos.coords.longitude;
+                        this.userLocation = {
+                            lat,
+                            lng,
+                        };
+                        try {
+                            const r = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=id`,
+                                {
+                                    headers: {
+                                        "User-Agent":
+                                            "ListmakApp/1.0",
+                                    },
+                                },
+                            );
+                            const data =
+                                await r.json();
+                            const a =
+                                data.address ||
+                                {};
+                            const parts = [
+                                a.county ||
+                                    a.city ||
+                                    a.town ||
+                                    a.municipality ||
+                                    "",
+                                a.city_district ||
+                                    a.suburb ||
+                                    "",
+                                a.village ||
+                                    a.hamlet ||
+                                    "",
+                            ].filter(Boolean);
+                            this.userLocationName =
+                                parts.join(", ");
+                        } catch {
+                            this.userLocationName =
+                                "";
+                        }
+                        resolve();
+                    },
+                    () => resolve(),
+                    { timeout: 4000 },
+                );
+            });
+        },
+
+        async fetchSummary() {
+            this.summaryLoading = true;
+            this.summaryError = "";
+            try {
+                const res =
+                    await listmak.getSummary(
+                        this.listmakId,
+                        this.userLocationName,
+                    );
+                if (res.success && res.data) {
+                    this.summaryData =
+                        res.data.summary;
+                    if (this.summaryData) {
+                        this.summaryData.total_actual =
+                            res.data.total_actual;
+                        this.summaryData.confirmed_at =
+                            res.data.confirmed_at;
+                        this.initPriceMap();
+                    }
+                }
             } catch (err) {
-                this.scanVendorError = err.message || 'Gagal scan vendor.'
-                this.$toast.add({
-                    severity: 'error',
-                    summary: 'Gagal scan lokasi',
-                    detail: this.scanVendorError,
-                    life: 3000
-                })
+                this.summaryError =
+                    err.message ||
+                    "Gagal memuat ringkasan.";
             } finally {
-                this.scanningVendors = false
+                this.summaryLoading = false;
+            }
+        },
+
+        openConfirmPrices() {
+            this.confirmError = "";
+            this.confirmPriceMap = {};
+            if (this.summaryData) {
+                for (const vendor of this
+                    .summaryData.vendors) {
+                    for (const item of vendor.items) {
+                        this.confirmPriceMap[
+                            `${vendor.name}::${item.name}`
+                        ] =
+                            item.unit_price_actual ??
+                            item.unit_price ??
+                            "";
+                    }
+                }
+            }
+            this.summaryMode = "confirm";
+        },
+
+        async submitConfirmPrices() {
+            this.confirmingPrices = true;
+            this.confirmError = "";
+            try {
+                const items = [];
+                for (const vendor of this
+                    .summaryData.vendors) {
+                    for (const item of vendor.items) {
+                        const key = `${vendor.name}::${item.name}`;
+                        const price = Number(
+                            this.confirmPriceMap[
+                                key
+                            ],
+                        );
+                        if (price > 0) {
+                            items.push({
+                                vendor_name:
+                                    vendor.name,
+                                item_name:
+                                    item.name,
+                                unit_price_actual:
+                                    price,
+                            });
+                        }
+                    }
+                }
+                const [res, ordersRes] =
+                    await Promise.all([
+                        listmak.confirmSummaryPrices(
+                            this.listmakId,
+                            items,
+                        ),
+                        listmak.getOrders(
+                            this.listmakId,
+                        ),
+                    ]);
+                if (res.success && res.data) {
+                    this.summaryData =
+                        res.data.summary;
+                    if (this.summaryData) {
+                        this.summaryData.total_actual =
+                            res.data.total_actual;
+                        this.summaryData.confirmed_at =
+                            res.data.confirmed_at;
+                        this.initPriceMap();
+                    }
+                }
+                if (
+                    ordersRes.success &&
+                    ordersRes.data
+                ) {
+                    this.orders = Array.isArray(
+                        ordersRes.data,
+                    )
+                        ? ordersRes.data
+                        : [];
+                }
+                this.$toast.add({
+                    severity: "success",
+                    summary: "Harga tersimpan!",
+                    life: 2000,
+                });
+            } catch (err) {
+                this.confirmError =
+                    err.message ||
+                    "Gagal menyimpan harga.";
+            } finally {
+                this.confirmingPrices = false;
+            }
+        },
+
+        async fetchEstimate(orderDetail) {
+            if (!orderDetail) return;
+            try {
+                const res =
+                    await listmak.estimateItemPrice(
+                        orderDetail,
+                        this.userLocationName,
+                    );
+                if (
+                    res.success &&
+                    res.data &&
+                    res.data.price > 0
+                ) {
+                    this.orderEstimates = {
+                        ...this.orderEstimates,
+                        [orderDetail]:
+                            res.data.price,
+                    };
+                }
+            } catch {
+                // silent — estimate is best-effort
             }
         },
 
         async saveVendor(order) {
-            const val = this.editingVendorValue.trim();
+            const val =
+                this.editingVendorValue.trim();
             try {
-                await listmak.updateOrderVendor(order.id, val);
+                await listmak.updateOrderVendor(
+                    order.id,
+                    val,
+                );
                 order.vendor_name = val;
                 this.editingVendorId = null;
             } catch {
@@ -1309,9 +2302,10 @@ export default {
 
         async loadActiveShares() {
             try {
-                const res = await share.getActiveShares(
-                    this.listmakId,
-                );
+                const res =
+                    await share.getActiveShares(
+                        this.listmakId,
+                    );
                 if (res.success && res.data) {
                     this.activeShareLink =
                         res.data.share_link;
@@ -1442,7 +2436,9 @@ export default {
         },
         async copyLinkUrl(url) {
             try {
-                await navigator.clipboard.writeText(url);
+                await navigator.clipboard.writeText(
+                    url,
+                );
                 this.$toast.add({
                     severity: "success",
                     summary: "Link disalin!",
@@ -1505,7 +2501,10 @@ export default {
             this.shareError = "";
             try {
                 let expiresAt;
-                if (this.selectedExpiry === "custom") {
+                if (
+                    this.selectedExpiry ===
+                    "custom"
+                ) {
                     expiresAt = new Date(
                         this.customExpiryDate,
                     ).toISOString();
@@ -1517,16 +2516,23 @@ export default {
                         "30d": 30,
                     };
                     const days =
-                        daysMap[this.selectedExpiry] || 7;
+                        daysMap[
+                            this.selectedExpiry
+                        ] || 7;
                     expiresAt = new Date(
                         Date.now() +
-                            days * 24 * 60 * 60 * 1000,
+                            days *
+                                24 *
+                                60 *
+                                60 *
+                                1000,
                     ).toISOString();
                 }
 
                 const res =
                     await share.createShareLink({
-                        listmak_id: this.listmakId,
+                        listmak_id:
+                            this.listmakId,
                         title: this.listmakTitle,
                         expires_at: expiresAt,
                     });
@@ -1576,7 +2582,8 @@ export default {
         },
 
         buildShareMessage() {
-            const isInput = this.shareResult.type === "input";
+            const isInput =
+                this.shareResult.type === "input";
             const title = this.listmakTitle;
             return isInput
                 ? `Halo semua! 👋\n\nAda listmak baru nih: *${title}*\n\nSilakan isi pesanan kalian di sini ya:\n${this.shareResult.url}\n\n_Klik linknya, masukin nama dan pesanan, selesai deh~_`
@@ -1586,7 +2593,9 @@ export default {
         async copyShareUrl() {
             const text = this.buildShareMessage();
             try {
-                await navigator.clipboard.writeText(text);
+                await navigator.clipboard.writeText(
+                    text,
+                );
                 this.$toast.add({
                     severity: "success",
                     summary: "Teks disalin!",
@@ -1595,7 +2604,8 @@ export default {
             } catch {
                 this.$toast.add({
                     severity: "error",
-                    summary: "Gagal menyalin. Salin manual.",
+                    summary:
+                        "Gagal menyalin. Salin manual.",
                     life: 2000,
                 });
             }
@@ -1611,43 +2621,83 @@ export default {
         async copyOrderText() {
             const lines = [];
             const title = this.listmakTitle;
-            const date = new Date().toLocaleDateString(
-                "id-ID",
-                {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                },
-            );
+            const date =
+                new Date().toLocaleDateString(
+                    "id-ID",
+                    {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                    },
+                );
 
-            lines.push(`*${title}* 📋`);
+            lines.push(`*${title}*`);
             lines.push(date);
             lines.push("");
-            lines.push(
-                `Ada ${this.totalOrders} pesanan hari ini~`,
-            );
-            lines.push("");
 
-            for (const group of this.groups) {
-                lines.push(`👤 *${group.name}*`);
-                for (const order of group.orders) {
-                    const price =
-                        order.price && order.price > 0
-                            ? `Rp ${this.formatRupiah((order.price || 0) * (order.qty || 1))}`
-                            : "harga belum diisi";
-                    lines.push(
-                        `- ${order.order_detail} · ${price}`,
-                    );
+            for (const vendorGroup of this
+                .vendorGroups) {
+                lines.push(
+                    `📍 *${vendorGroup.name}*`,
+                );
+
+                const personMap = new Map();
+                for (const order of vendorGroup.orders) {
+                    const key = order.name
+                        .trim()
+                        .toLowerCase();
+                    if (!personMap.has(key)) {
+                        personMap.set(key, {
+                            name: order.name.trim(),
+                            orders: [],
+                        });
+                    }
+                    personMap
+                        .get(key)
+                        .orders.push(order);
                 }
-                const totalLine = group.hasUnpriced
-                    ? "Total: belum jelas"
-                    : `Total: Rp ${this.formatRupiah(group.total)}`;
-                const paidLine =
-                    group.allPaid && !group.hasUnpriced
-                        ? "✅ Lunas"
-                        : "⏳ Belum bayar";
-                lines.push(`${totalLine} · ${paidLine}`);
+
+                for (const person of personMap.values()) {
+                    const allPaid =
+                        person.orders.every(
+                            (o) => o.is_paid,
+                        );
+                    const hasUnpriced =
+                        person.orders.some(
+                            (o) =>
+                                !o.price ||
+                                o.price === 0,
+                        );
+                    const bullet =
+                        allPaid && !hasUnpriced
+                            ? "✅"
+                            : "•";
+                    for (const order of person.orders) {
+                        const detail =
+                            order.order_detail;
+                        if (
+                            order.price &&
+                            order.price > 0
+                        ) {
+                            const qty =
+                                order.qty || 1;
+                            const total = `Rp ${this.formatRupiah(order.price * qty)}`;
+                            const qtyPart =
+                                qty > 1
+                                    ? `${qty}x `
+                                    : "";
+                            lines.push(
+                                `${bullet} ${person.name} — ${detail} (${qtyPart}${total})`,
+                            );
+                        } else {
+                            lines.push(
+                                `${bullet} ${person.name} — ${detail} (harga belum diisi)`,
+                            );
+                        }
+                    }
+                }
+
                 lines.push("");
             }
 
@@ -1655,18 +2705,22 @@ export default {
                 (s, g) => s + (g.total || 0),
                 0,
             );
-            const paidCount = this.groups.filter(
-                (g) => g.allPaid && !g.hasUnpriced,
-            ).length;
-            const unpaidCount =
-                this.groups.length - paidCount;
+            const paidTotal = this.groups
+                .filter(
+                    (g) =>
+                        g.allPaid &&
+                        !g.hasUnpriced,
+                )
+                .reduce(
+                    (s, g) => s + (g.total || 0),
+                    0,
+                );
 
-            lines.push("---");
             lines.push(
-                `Total terkumpul: Rp ${this.formatRupiah(grandTotal)}`,
+                `*Total: Rp ${this.formatRupiah(grandTotal)}*`,
             );
             lines.push(
-                `Lunas: ${paidCount} orang · Belum: ${unpaidCount} orang`,
+                `Terbayar: Rp ${this.formatRupiah(paidTotal)}`,
             );
 
             try {
@@ -1706,39 +2760,43 @@ export default {
             if (!this.addSubmitting) {
                 this.showAddModal = false;
                 this.addMode = "choose";
+                this.confirmItems = [];
             }
         },
 
         async submitSingle() {
+            const name =
+                this.singleForm.name.trim();
+            const order_detail =
+                this.singleForm.order_detail.trim();
+            if (!name || !order_detail) return;
             this.addSubmitting = true;
             this.addError = "";
             try {
-                await listmak.addOrder(
-                    this.listmakId,
-                    {
-                        name: this.singleForm.name.trim(),
-                        order_detail:
-                            this.singleForm.order_detail.trim(),
-                        price:
-                            this.singleForm
-                                .price || 0,
-                        qty:
-                            this.singleForm.qty ||
-                            1,
-                    },
-                );
-                await this.refreshOrders();
-                this.singleForm = {
-                    name: "",
-                    order_detail: "",
-                    price: "",
-                    qty: 1,
-                };
-                this.showAddModal = false;
+                const res =
+                    await listmak.parseOrders(
+                        [{ name, order_detail }],
+                        this.userLocationName,
+                    );
+                const items = (
+                    res.data || []
+                ).map((item) => ({
+                    ...item,
+                    editPrice:
+                        item.estimated_price || 0,
+                }));
+                if (items.length === 0) {
+                    this.addError =
+                        "AI tidak bisa memproses pesanan ini.";
+                    return;
+                }
+                this.preParsedMode = "single";
+                this.confirmItems = items;
+                this.addMode = "confirm";
             } catch (err) {
                 this.addError =
                     err.message ||
-                    "Gagal menyimpan. Coba lagi.";
+                    "Gagal proses pesanan. Coba lagi.";
             } finally {
                 this.addSubmitting = false;
             }
@@ -1750,12 +2808,72 @@ export default {
             this.addSubmitting = true;
             this.addError = "";
             try {
+                const res =
+                    await listmak.parseOrders(
+                        this.parsedBulkOrders,
+                        this.userLocationName,
+                    );
+                const items = (
+                    res.data || []
+                ).map((item) => ({
+                    ...item,
+                    editPrice:
+                        item.estimated_price || 0,
+                }));
+                if (items.length === 0) {
+                    this.addError =
+                        "AI tidak bisa memproses pesanan. Coba tulis ulang.";
+                    return;
+                }
+                this.preParsedMode = "bulk";
+                this.confirmItems = items;
+                this.addMode = "confirm";
+            } catch (err) {
+                this.addError =
+                    err.message ||
+                    "Gagal proses pesanan. Coba lagi.";
+            } finally {
+                this.addSubmitting = false;
+            }
+        },
+
+        removeConfirmItem(index) {
+            this.confirmItems.splice(index, 1);
+        },
+
+        async confirmOrders() {
+            this.addSubmitting = true;
+            this.addError = "";
+            try {
+                const orders =
+                    this.confirmItems.map(
+                        (item) => ({
+                            name: item.name,
+                            order_detail:
+                                item.order_detail,
+                            vendor_name:
+                                item.vendor_name ||
+                                "",
+                            price:
+                                item.editPrice ||
+                                0,
+                            qty: item.qty || 1,
+                        }),
+                    );
                 await listmak.addBulkOrders(
                     this.listmakId,
-                    this.parsedBulkOrders,
+                    orders,
                 );
                 await this.refreshOrders();
+                this.summaryData = null;
+                this.singleForm = {
+                    name: "",
+                    order_detail: "",
+                    price: "",
+                    qty: 1,
+                };
                 this.bulkText = "";
+                this.confirmItems = [];
                 this.showAddModal = false;
             } catch (err) {
                 this.addError =
@@ -1810,6 +2928,33 @@ export default {
                     "Gagal menyimpan. Coba lagi.";
             } finally {
                 this.editSubmitting = false;
+            }
+        },
+
+        async quickDeleteOrder(order) {
+            if (
+                !confirm(
+                    `Hapus "${order.order_detail}"?`,
+                )
+            )
+                return;
+            try {
+                await listmak.deleteOrder(
+                    order.id,
+                );
+                this.orders = this.orders.filter(
+                    (o) => o.id !== order.id,
+                );
+                this.summaryData = null;
+            } catch (err) {
+                this.$toast.add({
+                    severity: "error",
+                    summary: "Gagal hapus",
+                    detail:
+                        err.message ||
+                        "Coba lagi.",
+                    life: 3000,
+                });
             }
         },
 
@@ -1935,6 +3080,11 @@ export default {
     color: #eab308;
 }
 
+.summary-value--price {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
 .summary-label {
     font-size: 0.75rem;
     color: #64748b;
@@ -1977,59 +3127,269 @@ export default {
     transform: translateY(-1px);
 }
 
-/* Vendor action row */
-.vendor-action-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.vendor-ai-btn,
-.vendor-group-btn {
-    flex: 1;
+/* Ringkasan button */
+.ringkasan-btn {
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    padding: 0.7rem 0.75rem;
+    gap: 0.45rem;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.75rem;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.25);
     border-radius: 0.875rem;
+    color: #c084fc;
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
 }
 
-.vendor-ai-btn {
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.25);
-    color: #c084fc;
-}
-
-.vendor-ai-btn:hover:not(:disabled) {
+.ringkasan-btn:hover {
     background: rgba(168, 85, 247, 0.18);
     border-color: rgba(168, 85, 247, 0.4);
 }
 
-.vendor-ai-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.ringkasan-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
 }
 
-.vendor-group-btn {
-    background: rgba(99, 102, 241, 0.1);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    color: #818cf8;
+.ringkasan-icon-wrap .pi-pencil {
+    font-size: 0.875rem;
 }
 
-.vendor-group-btn:hover {
-    background: rgba(99, 102, 241, 0.18);
-    border-color: rgba(99, 102, 241, 0.4);
+.ringkasan-sparkle {
+    position: absolute;
+    top: -0.4rem;
+    right: -0.55rem;
+    font-size: 0.55rem;
+    color: #e9d5ff;
+    opacity: 0.9;
 }
 
-.vendor-group-btn--active {
-    background: rgba(99, 102, 241, 0.2);
+/* Summary modal */
+.summary-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 2rem 0;
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.summary-vendor-block {
+    margin-bottom: 1.25rem;
+}
+
+.summary-vendor-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #c084fc;
+    margin-bottom: 0.5rem;
+}
+
+.summary-vendor-header i {
+    font-size: 0.75rem;
+}
+
+.summary-item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.summary-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    padding: 0.375rem 0;
+    border-bottom: 1px solid
+        rgba(255, 255, 255, 0.03);
+}
+
+.summary-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.summary-item-name {
+    color: #e2e8f0;
+    overflow-wrap: anywhere;
+}
+
+.summary-item-qty {
+    color: #64748b;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+}
+
+.summary-item-price-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.ai-estimate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 999px;
+    padding: 0.1rem 0.35rem;
+    flex-shrink: 0;
+}
+
+.ai-estimate-badge i {
+    font-size: 0.5625rem;
+}
+
+.sum-edit-rp {
+    font-size: 0.75rem;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.sum-price-input {
+    width: 5.5rem;
+    padding: 0.25rem 0.375rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    color: #f1f5f9;
+    font-size: 0.8125rem;
+    text-align: right;
+    font-family: inherit;
+}
+
+.sum-price-input:focus {
+    outline: none;
     border-color: rgba(99, 102, 241, 0.5);
-    color: #a5b4fc;
+}
+
+.summary-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-top: 1px solid
+        rgba(255, 255, 255, 0.08);
+    margin-top: 0.25rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    font-size: 0.9375rem;
+}
+
+.summary-confirmed-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    color: #22c55e;
+    margin-top: 0.5rem;
+}
+
+.confirm-trigger-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 0.625rem;
+    color: #22c55e;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: auto;
+    transition: background 0.15s;
+}
+
+.confirm-trigger-btn:hover {
+    background: rgba(34, 197, 94, 0.18);
+}
+
+/* Confirm prices */
+.confirm-hint {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+.confirm-vendor-block {
+    margin-bottom: 1rem;
+}
+
+.confirm-vendor-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #c084fc;
+    margin-bottom: 0.5rem;
+}
+
+.confirm-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.confirm-item-label {
+    flex: 1;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+}
+
+.confirm-price-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.confirm-rp {
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.confirm-price-input {
+    width: 7rem;
+    padding: 0.375rem 0.5rem;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    color: #f1f5f9;
+    font-size: 0.8125rem;
+    text-align: right;
+}
+
+.confirm-price-input:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
 }
 
 /* Groups */
@@ -2180,6 +3540,10 @@ export default {
     font-size: 0.75rem;
 }
 
+.item-no-price--estimated {
+    color: #a78bfa;
+}
+
 .edit-btn {
     flex-shrink: 0;
     width: 2rem;
@@ -2203,6 +3567,31 @@ export default {
 }
 
 .edit-btn i {
+    font-size: 0.8rem;
+}
+
+.delete-btn-inline {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 68, 68, 0.07);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    border-radius: 0.5rem;
+    color: #ef4444;
+    cursor: pointer;
+    transition:
+        color 0.15s,
+        background 0.15s;
+}
+
+.delete-btn-inline:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+.delete-btn-inline i {
     font-size: 0.8rem;
 }
 
@@ -2761,7 +4150,10 @@ export default {
     font-size: 0.875rem;
     padding: 0.375rem 0.875rem;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .expiry-chip:hover {
@@ -2835,7 +4227,9 @@ export default {
     border-radius: 999px;
     padding: 0.2rem 0.6rem;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition:
+        color 0.15s,
+        border-color 0.15s;
     font-family: inherit;
 }
 
@@ -2883,5 +4277,135 @@ export default {
 .vendor-cancel-btn {
     background: rgba(255, 255, 255, 0.05);
     color: #64748b;
+}
+
+/* Confirm mode */
+.confirm-hint-text {
+    font-size: 0.8125rem;
+    color: yellow;
+    margin-bottom: 0.875rem;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    align-items: center;
+}
+
+.confirm-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 55dvh;
+    overflow-y: auto;
+}
+
+.confirm-order-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.625rem;
+}
+
+.confirm-order-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.confirm-order-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.confirm-order-detail {
+    font-size: 0.8125rem;
+    color: #cbd5e1;
+    overflow-wrap: anywhere;
+}
+
+.confirm-order-vendor {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.65rem;
+    color: #64748b;
+    margin-top: 0.125rem;
+}
+
+.confirm-order-vendor i {
+    font-size: 0.6rem;
+}
+
+.confirm-order-price-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex-shrink: 0;
+}
+
+.confirm-order-qty {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.1);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.3rem;
+}
+
+.confirm-order-rp {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.confirm-order-price-input {
+    width: 5.5rem;
+    padding: 0.3rem 0.4rem;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+    color: #f1f5f9;
+    font-size: 0.8125rem;
+    text-align: right;
+    font-family: inherit;
+}
+
+.confirm-order-price-input:focus {
+    outline: none;
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+.confirm-order-delete-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 0.375rem;
+    color: #ef4444;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.confirm-order-delete-btn:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.confirm-order-delete-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.confirm-order-delete-btn i {
+    font-size: 0.6875rem;
 }
 </style>

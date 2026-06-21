@@ -15,14 +15,14 @@ var ErrNoOrdersMatched = errors.New("no orders matched the given name")
 type OrderService interface {
 	GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error)
 	CreateOrder(order models.Order) (models.Order, error)
-	CreateOrdersBulk(listmakId uint, orders []models.Order) (int, []models.Order, error)
+	CreateOrdersBulk(listmakId uint, orders []models.Order, requestID string) (int, []models.Order, error)
 	UpdateOrder(order models.Order) (models.Order, error)
 	UpdateOrderPaidStatus(id uint, isPaid bool) (models.Order, error)
 	UpdateOrdersPaidByName(listmakId uint, name string, isPaid bool) (int64, error)
 	DeleteOrder(id uint) error
 	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
 	UpdateVendorName(id uint, vendorName string) error
-	ScanVendors(listmakID uint) ([]models.Order, error)
+	ScanVendors(listmakID uint, requestID string) ([]models.Order, error)
 }
 
 type orderService struct {
@@ -39,14 +39,6 @@ func NewOrderService(orderRepo repository.OrderRepository, listmakRepo repositor
 	}
 }
 
-func (s *orderService) fillVendorAsync(id uint, orderDetail string) {
-	vendor, err := s.ai.ExtractVendor(orderDetail, &id)
-	if err != nil || vendor == "" {
-		return
-	}
-	s.orderRepo.UpdateVendorName(id, vendor)
-}
-
 func (s *orderService) GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error) {
 	return s.orderRepo.GetOrdersByListmakId(listmakId, isPaid, search)
 }
@@ -60,11 +52,10 @@ func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
 	}
 	s.updateListmakTotals(order.ListmakID)
 
-	go s.fillVendorAsync(newOrder.ID, newOrder.OrderDetail)
 	return newOrder, nil
 }
 
-func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (int, []models.Order, error) {
+func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order, requestID string) (int, []models.Order, error) {
 	for i := range orders {
 		orders[i].ListmakID = listmakId
 		orders[i].TotalPrice = orders[i].Price * float64(orders[i].Qty)
@@ -80,9 +71,26 @@ func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order) (
 
 	s.updateListmakTotals(listmakId)
 
-	for _, o := range createdOrders {
-		go s.fillVendorAsync(o.ID, o.OrderDetail)
-	}
+	go func(created []models.Order, reqID string) {
+		var unscanned []models.Order
+		for _, o := range created {
+			if o.VendorName == "" {
+				unscanned = append(unscanned, o)
+			}
+		}
+		if len(unscanned) == 0 {
+			return
+		}
+		vendors, err := s.ai.ExtractVendorsBatch(reqID, unscanned)
+		if err == nil {
+			for id, name := range vendors {
+				if name != "" {
+					s.orderRepo.UpdateVendorName(id, name)
+				}
+			}
+		}
+	}(createdOrders, requestID)
+
 	return len(createdOrders), createdOrders, nil
 }
 
@@ -155,7 +163,7 @@ func (s *orderService) UpdateVendorName(id uint, vendorName string) error {
 	return s.orderRepo.UpdateVendorName(id, vendorName)
 }
 
-func (s *orderService) ScanVendors(listmakID uint) ([]models.Order, error) {
+func (s *orderService) ScanVendors(listmakID uint, requestID string) ([]models.Order, error) {
 	orders, err := s.orderRepo.GetOrdersByListmakId(listmakID, nil, "")
 	if err != nil {
 		return nil, err
@@ -169,7 +177,7 @@ func (s *orderService) ScanVendors(listmakID uint) ([]models.Order, error) {
 	}
 
 	if len(unscanned) > 0 {
-		vendors, err := s.ai.ExtractVendorsBatch(unscanned)
+		vendors, err := s.ai.ExtractVendorsBatch(requestID, unscanned)
 		if err == nil {
 			for id, name := range vendors {
 				if name != "" {

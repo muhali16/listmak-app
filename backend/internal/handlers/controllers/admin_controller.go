@@ -32,7 +32,9 @@ func (ac *adminController) GetAILogs(c *gin.Context) {
 	if page < 1 {
 		page = 1
 	}
-	logs, total, err := ac.aiLogRepo.GetAll(page, 50)
+	status := c.Query("status")
+	search := c.Query("search")
+	logs, total, err := ac.aiLogRepo.GetAll(page, 50, status, search)
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to retrieve AI logs", nil)
 		return

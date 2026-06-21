@@ -17,8 +17,11 @@ async function apiCall(endpoint, options = {}) {
 }
 
 export default {
-  getAILogs(page = 1) {
-    return apiCall(`/admin/ai-logs?page=${page}`)
+  getAILogs(page = 1, status = '', search = '') {
+    const params = new URLSearchParams({ page })
+    if (status) params.set('status', status)
+    if (search) params.set('search', search)
+    return apiCall(`/admin/ai-logs?${params}`)
   },
   getSystemLogs(query = 'page=1') {
     return apiCall(`/admin/system-logs?${query}`)

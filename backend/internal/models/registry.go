@@ -9,5 +9,7 @@ func ModelRegistry() []interface{} {
 		&ShareLink{},
 		&ViewShare{},
 		&AILog{},
+		&PriceCatalog{},
+		&ListmakSummary{},
 	}
 }

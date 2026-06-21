@@ -85,6 +85,13 @@ export default {
     })
   },
 
+  parseOrders(shareId, orders, location = '') {
+    return apiCall(`/share-links/${shareId}/parse-orders`, {
+      method: 'POST',
+      body: { orders, location }
+    })
+  },
+
   getFoodSuggestions(shareId, query = '') {
     const params = query ? `?q=${encodeURIComponent(query)}` : ''
     return apiCall(`/share-links/${shareId}/food-suggestions${params}`, { method: 'GET' })

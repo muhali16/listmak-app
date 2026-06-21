@@ -136,7 +136,7 @@ func (oc *orderController) CreateOrdersBulk(c *gin.Context) {
 		return
 	}
 
-	count, orders, err := oc.orderService.CreateOrdersBulk(uint(listmakId), payload.Orders)
+	count, orders, err := oc.orderService.CreateOrdersBulk(uint(listmakId), payload.Orders, c.GetString("RequestID"))
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to bulk create orders", nil)
 		return
@@ -311,7 +311,7 @@ func (oc *orderController) ScanVendors(c *gin.Context) {
 		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid listmak ID", nil)
 		return
 	}
-	orders, err := oc.orderService.ScanVendors(uint(listmakId))
+	orders, err := oc.orderService.ScanVendors(uint(listmakId), c.GetString("RequestID"))
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to scan vendors", nil)
 		return

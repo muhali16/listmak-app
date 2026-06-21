@@ -134,5 +134,32 @@ export default {
     return apiCall(`/listmaks/${listmakId}/scan-vendors`, {
       method: 'POST'
     })
+  },
+
+  getSummary(listmakId, location) {
+    const params = new URLSearchParams()
+    if (location) params.set('location', location)
+    const qs = params.toString()
+    return apiCall(`/listmaks/${listmakId}/summary${qs ? '?' + qs : ''}`)
+  },
+
+  confirmSummaryPrices(listmakId, items) {
+    return apiCall(`/listmaks/${listmakId}/summary/confirm`, {
+      method: 'PUT',
+      body: items
+    })
+  },
+
+  parseOrders(orders, location = '') {
+    return apiCall('/ai/parse-orders', {
+      method: 'POST',
+      body: { orders, location }
+    })
+  },
+
+  estimateItemPrice(itemDetail, location) {
+    const params = new URLSearchParams({ item: itemDetail })
+    if (location) params.set('location', location)
+    return apiCall(`/price-catalog/estimate?${params}`)
   }
 }

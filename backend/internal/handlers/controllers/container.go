@@ -15,6 +15,8 @@ type Container struct {
 	OrderController   OrderController
 	ShareController   ShareController
 	AdminController   AdminController
+	SummaryController SummaryController
+	AIController      AIController
 }
 
 func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *Container {
@@ -25,6 +27,8 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	shareRepo := repository.NewShareLinkRepository(db)
 	viewShareRepo := repository.NewViewShareRepository(db)
 	aiLogRepo := repository.NewAILogRepository(db)
+	summaryRepo := repository.NewSummaryRepository(db)
+	catalogRepo := repository.NewPriceCatalogRepository(db)
 
 	// init AI service
 	var aiService services.AIService
@@ -41,14 +45,17 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	listmakService := services.NewListmakService(listmakRepo)
 	orderService := services.NewOrderService(orderRepo, listmakRepo, aiService)
 	shareService := services.NewShareService(shareRepo, viewShareRepo, listmakRepo)
+	summaryService := services.NewSummaryService(summaryRepo, catalogRepo, orderRepo, aiService)
 
 	// init controllers
 	userController := NewUserController(userService)
 	authController := NewAuthController(userService)
 	listmakController := NewListmakController(listmakService)
 	orderController := NewOrderController(orderService)
-	shareController := NewShareController(shareService, orderService)
+	shareController := NewShareController(shareService, orderService, aiService)
 	adminController := NewAdminController(aiLogRepo, systemLogRepo, userRepo)
+	summaryController := NewSummaryController(summaryService)
+	aiController := NewAIController(aiService)
 
 	return &Container{
 		UserController:    userController,
@@ -57,5 +64,7 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 		OrderController:   orderController,
 		ShareController:   shareController,
 		AdminController:   adminController,
+		SummaryController: summaryController,
+		AIController:      aiController,
 	}
 }
