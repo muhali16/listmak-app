@@ -71,6 +71,7 @@ func (ac *authController) GoogleLogin(c *gin.Context) {
 		return
 	}
 	secure := os.Getenv("ENV") == "production"
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("oauth_state", state, 300, "/", os.Getenv("FRONTEND_DOMAIN"), secure, true)
 	url := ac.getGoogleConfig().AuthCodeURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
@@ -92,6 +93,7 @@ func (ac *authController) GoogleCallback(c *gin.Context) {
 		return
 	}
 	secure := os.Getenv("ENV") == "production"
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("oauth_state", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), secure, true)
 
 	config := ac.getGoogleConfig()
@@ -155,6 +157,7 @@ func (ac *authController) GoogleCallback(c *gin.Context) {
 		return
 	}
 
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		"X-User-Authentication-Token",
 		jwtToken,
@@ -204,6 +207,7 @@ func (ac *authController) GetUserAuthenticated(c *gin.Context) {
 // @Failure      500  {object}  utils.Response
 // @Router       /auth/logout [get]
 func (ac *authController) Logout(c *gin.Context) {
+	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie("X-User-Authentication-Token", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), os.Getenv("ENV") == "production", true)
 	utils.SendResponse(c, http.StatusOK, true, "Logged out successfully", nil)
 }

@@ -51,18 +51,23 @@ func (s *shareService) CreateShareLink(listmakId uint, title string, expiresAt t
 		return models.ShareLink{}, errors.New("Listmak not found")
 	}
 
-	shareId, _ := utils.GenerateRandomString(8)
-	// Make sure unique... but for simplicity assume random is enough or handle db error
-
-	shareLink := models.ShareLink{
-		ShareID:   shareId,
-		ListmakID: listmakId,
-		Title:     title,
-		ExpiresAt: expiresAt,
-		CreatedBy: &userId,
+	for range 3 {
+		shareId, err := utils.GenerateRandomString(8)
+		if err != nil {
+			return models.ShareLink{}, err
+		}
+		result, err := s.shareRepo.CreateShareLink(models.ShareLink{
+			ShareID:   shareId,
+			ListmakID: listmakId,
+			Title:     title,
+			ExpiresAt: expiresAt,
+			CreatedBy: &userId,
+		})
+		if err == nil {
+			return result, nil
+		}
 	}
-
-	return s.shareRepo.CreateShareLink(shareLink)
+	return models.ShareLink{}, errors.New("failed to generate unique share ID")
 }
 
 func (s *shareService) GetShareLink(shareId string) (models.ShareLink, error) {
@@ -106,20 +111,26 @@ func (s *shareService) CreateViewShare(listmakId uint, title string, userId uint
 
 	snapshot, _ := json.Marshal(listmak)
 
-	viewId, _ := utils.GenerateRandomString(8)
-
-	viewShare := models.ViewShare{
-		ViewID:       viewId,
-		ListmakID:    listmakId,
-		Title:        title,
-		SnapshotData: snapshot,
-		// New links serve live data. The snapshot above is still stored as a
-		// frozen fallback, but GetViewShare overwrites it with fresh data on read.
-		IsLive:    true,
-		CreatedBy: &userId,
+	for range 3 {
+		viewId, err := utils.GenerateRandomString(8)
+		if err != nil {
+			return models.ViewShare{}, err
+		}
+		result, err := s.viewShareRepo.CreateViewShare(models.ViewShare{
+			ViewID:       viewId,
+			ListmakID:    listmakId,
+			Title:        title,
+			SnapshotData: snapshot,
+			// New links serve live data. The snapshot above is still stored as a
+			// frozen fallback, but GetViewShare overwrites it with fresh data on read.
+			IsLive:    true,
+			CreatedBy: &userId,
+		})
+		if err == nil {
+			return result, nil
+		}
 	}
-
-	return s.viewShareRepo.CreateViewShare(viewShare)
+	return models.ViewShare{}, errors.New("failed to generate unique view ID")
 }
 
 func (s *shareService) GetViewShare(viewId string) (models.ViewShare, error) {

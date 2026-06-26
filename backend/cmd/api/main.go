@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -58,8 +59,13 @@ func main() {
 	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.1.8.sslip.io", "192.168.1.8"})
 
 	r.Use(middlewares.CORSMiddleware())
+	r.Use(middlewares.SecurityHeaders())
 	r.Use(middlewares.LoggerWithID(systemLogRepo))
 	r.Use(middlewares.RateLimiter(rate.Every(200*time.Millisecond), 30)) // 5 req/sec, burst 30
+	r.Use(func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 1<<20) // 1MB
+		c.Next()
+	})
 
 	routes.Routes(r, systemLogRepo)
 
