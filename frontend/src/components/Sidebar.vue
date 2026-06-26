@@ -47,6 +47,7 @@
       <router-link to="/changelog" class="changelog-link" :class="{ active: $route.path === '/changelog' }">
         <i class="pi pi-megaphone"></i>
         <span>Pembaruan</span>
+        <span v-if="hasUpdate" class="update-badge"></span>
       </router-link>
       <button @click="handleLogout" class="logout-btn">
         <i class="pi pi-sign-out"></i>
@@ -58,6 +59,7 @@
 
 <script>
 import { logout } from '../api/auth'
+import changelog from '../data/changelog.json'
 
 export default {
   name: 'Sidebar',
@@ -72,6 +74,9 @@ export default {
     },
     isAdminRoute() {
       return this.$route.path.startsWith('/admin')
+    },
+    hasUpdate() {
+      return localStorage.getItem('lastSeenVersion') !== changelog[0]?.version
     },
     navItems() {
       return [
@@ -243,6 +248,15 @@ export default {
 .changelog-link.active {
   background: rgba(255, 255, 255, 0.05);
   color: #e2e8f0;
+}
+
+.update-badge {
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
 }
 
 .logout-btn {

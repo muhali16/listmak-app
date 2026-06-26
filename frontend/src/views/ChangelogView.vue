@@ -40,6 +40,11 @@ export default {
   data() {
     return { changelog }
   },
+  mounted() {
+    if (changelog[0]?.version) {
+      localStorage.setItem('lastSeenVersion', changelog[0].version)
+    }
+  },
   methods: {
     formatDate(dateStr) {
       return new Date(dateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
