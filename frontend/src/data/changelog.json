@@ -1,33 +1,90 @@
 [
   {
+    "version": "1.2.0",
+    "date": "2026-06-27",
+    "entries": [
+      {
+        "type": "feat",
+        "message": "Halaman landing page baru untuk pengunjung sebelum login"
+      },
+      {
+        "type": "feat",
+        "message": "Halaman Kebijakan Privasi dan Syarat & Ketentuan"
+      },
+      {
+        "type": "feat",
+        "message": "Optimasi SEO agar Listmak lebih mudah ditemukan di Google"
+      }
+    ]
+  },
+  {
     "version": "1.1.1",
     "date": "2026-06-27",
     "entries": [
-      { "type": "feat", "message": "Tampilkan logo dan favicon resmi Listmak di seluruh aplikasi" }
+      {
+        "type": "feat",
+        "message": "Tampilkan logo dan favicon resmi Listmak di seluruh aplikasi"
+      }
     ]
   },
   {
     "version": "1.1.0",
     "date": "2026-06-27",
     "entries": [
-      { "type": "security", "message": "Perbaiki CSRF pada OAuth login Google" },
-      { "type": "security", "message": "Perbaiki bug JWT secret tidak terbaca saat startup" },
-      { "type": "security", "message": "Cookie autentikasi kini pakai flag Secure di production dan SameSite=Lax" },
-      { "type": "security", "message": "Tambah rate limiting: 5 req/detik global, 6 req/menit untuk endpoint login" },
-      { "type": "security", "message": "Tambah header keamanan: CSP, HSTS, X-Frame-Options, dll" },
-      { "type": "security", "message": "Batas ukuran request body: 1MB" },
-      { "type": "fix", "message": "Share ID dan View ID kini retry otomatis jika terjadi tabrakan ID" }
+      {
+        "type": "security",
+        "message": "Perbaiki CSRF pada OAuth login Google"
+      },
+      {
+        "type": "security",
+        "message": "Perbaiki bug JWT secret tidak terbaca saat startup"
+      },
+      {
+        "type": "security",
+        "message": "Cookie autentikasi kini pakai flag Secure di production dan SameSite=Lax"
+      },
+      {
+        "type": "security",
+        "message": "Tambah rate limiting: 5 req/detik global, 6 req/menit untuk endpoint login"
+      },
+      {
+        "type": "security",
+        "message": "Tambah header keamanan: CSP, HSTS, X-Frame-Options, dll"
+      },
+      {
+        "type": "security",
+        "message": "Batas ukuran request body: 1MB"
+      },
+      {
+        "type": "fix",
+        "message": "Share ID dan View ID kini retry otomatis jika terjadi tabrakan ID"
+      }
     ]
   },
   {
     "version": "1.0.0",
     "date": "2026-06-24",
     "entries": [
-      { "type": "feat", "message": "Fitur parsing order otomatis dengan AI" },
-      { "type": "feat", "message": "Ringkasan harga otomatis dengan AI" },
-      { "type": "feat", "message": "Scan vendor dengan AI" },
-      { "type": "feat", "message": "System logs dan AI logs untuk Admin" },
-      { "type": "fix", "message": "Cache ringkasan dibersihkan saat order dihapus melalui modal edit" }
+      {
+        "type": "feat",
+        "message": "Fitur parsing order otomatis dengan AI"
+      },
+      {
+        "type": "feat",
+        "message": "Ringkasan harga otomatis dengan AI"
+      },
+      {
+        "type": "feat",
+        "message": "Scan vendor dengan AI"
+      },
+      {
+        "type": "feat",
+        "message": "System logs dan AI logs untuk Admin"
+      },
+      {
+        "type": "fix",
+        "message": "Cache ringkasan dibersihkan saat order dihapus melalui modal edit"
+      }
     ]
   }
 ]
