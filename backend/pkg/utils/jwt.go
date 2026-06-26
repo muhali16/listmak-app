@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
 type JWTClaims struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
@@ -33,13 +31,13 @@ func GenerateJWT(userId string, email string, role string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 }
 
 // validate jwt token
 func ValidateJWT(jWTTokenString string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(jWTTokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 
 	if err != nil {

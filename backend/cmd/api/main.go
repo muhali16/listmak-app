@@ -11,6 +11,7 @@ import (
 	"github.com/muhali16/listmak-service/internal/handlers/middlewares"
 	"github.com/muhali16/listmak-service/internal/repository"
 	"github.com/muhali16/listmak-service/internal/routes"
+	"golang.org/x/time/rate"
 )
 
 // @title           Listmak Service API
@@ -22,6 +23,10 @@ func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
+	}
+
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("JWT_SECRET is required")
 	}
 
 	configs.InitDB()
@@ -54,6 +59,7 @@ func main() {
 
 	r.Use(middlewares.CORSMiddleware())
 	r.Use(middlewares.LoggerWithID(systemLogRepo))
+	r.Use(middlewares.RateLimiter(rate.Every(200*time.Millisecond), 30)) // 5 req/sec, burst 30
 
 	routes.Routes(r, systemLogRepo)
 

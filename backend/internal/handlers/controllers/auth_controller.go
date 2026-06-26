@@ -65,7 +65,14 @@ func isAdminEmail(email string) bool {
 // @Success      307
 // @Router       /auth/google/login [get]
 func (ac *authController) GoogleLogin(c *gin.Context) {
-	url := ac.getGoogleConfig().AuthCodeURL("random-state")
+	state, err := utils.GenerateRandomString(16)
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to generate state", nil)
+		return
+	}
+	secure := os.Getenv("ENV") == "production"
+	c.SetCookie("oauth_state", state, 300, "/", os.Getenv("FRONTEND_DOMAIN"), secure, true)
+	url := ac.getGoogleConfig().AuthCodeURL(state)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
@@ -79,6 +86,14 @@ func (ac *authController) GoogleLogin(c *gin.Context) {
 // @Failure      500  {object}  utils.Response
 // @Router       /auth/google/callback [get]
 func (ac *authController) GoogleCallback(c *gin.Context) {
+	state, err := c.Cookie("oauth_state")
+	if err != nil || state != c.Query("state") {
+		utils.SendResponse(c, http.StatusBadRequest, false, "Invalid OAuth state", nil)
+		return
+	}
+	secure := os.Getenv("ENV") == "production"
+	c.SetCookie("oauth_state", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), secure, true)
+
 	config := ac.getGoogleConfig()
 	code := c.Query("code")
 
@@ -146,7 +161,7 @@ func (ac *authController) GoogleCallback(c *gin.Context) {
 		60*60*24,
 		"/",
 		os.Getenv("FRONTEND_DOMAIN"),
-		false,
+		os.Getenv("ENV") == "production",
 		true,
 	)
 
@@ -189,6 +204,6 @@ func (ac *authController) GetUserAuthenticated(c *gin.Context) {
 // @Failure      500  {object}  utils.Response
 // @Router       /auth/logout [get]
 func (ac *authController) Logout(c *gin.Context) {
-	c.SetCookie("X-User-Authentication-Token", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), false, true)
+	c.SetCookie("X-User-Authentication-Token", "", -1, "/", os.Getenv("FRONTEND_DOMAIN"), os.Getenv("ENV") == "production", true)
 	utils.SendResponse(c, http.StatusOK, true, "Logged out successfully", nil)
 }
