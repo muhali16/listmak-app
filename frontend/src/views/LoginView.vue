@@ -29,7 +29,11 @@
         </Button>
 
         <p class="login-terms">
-          Dengan masuk, Anda menyetujui syarat dan ketentuan kami
+          Dengan masuk, Anda menyetujui
+          <router-link to="/terms" class="login-link">Syarat &amp; Ketentuan</router-link>
+          dan
+          <router-link to="/privacy" class="login-link">Kebijakan Privasi</router-link>
+          kami.
         </p>
       </div>
 
@@ -211,6 +215,16 @@ export default {
   text-align: center;
   color: #64748b;
   font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.login-link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
 }
 
 .features-preview {

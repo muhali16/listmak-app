@@ -26,14 +26,58 @@ import AdminSystemLogsView from './views/AdminSystemLogsView.vue'
 import AdminPriceCatalogView from './views/AdminPriceCatalogView.vue'
 import AdminListmaksView from './views/AdminListmaksView.vue'
 import ChangelogView from './views/ChangelogView.vue'
+import LandingView from './views/LandingView.vue'
+import PrivacyView from './views/PrivacyView.vue'
+import TermsView from './views/TermsView.vue'
+
+const DEFAULT_TITLE = 'Listmak — Aplikasi Pesan Makan Bareng Kantor Tanpa Ribet Rekap'
+const DEFAULT_DESC = 'Listmak bantu tim kantor kumpulkan pesanan makan bareng, hitung total otomatis, dan bagikan link biar semua isi sendiri. Gratis, masuk dengan Google.'
 
 // Router configuration
 const routes = [
-  { 
-    path: '/', 
-    name: 'Login', 
-    component: LoginView, 
-    meta: { hideNav: true, guest: true } 
+  {
+    path: '/',
+    name: 'Landing',
+    component: LandingView,
+    meta: {
+      hideNav: true,
+      public: true,
+      title: DEFAULT_TITLE,
+      description: DEFAULT_DESC
+    }
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginView,
+    meta: {
+      hideNav: true,
+      guest: true,
+      title: 'Masuk · Listmak',
+      description: 'Masuk ke Listmak dengan akun Google untuk mengelola pesanan makan bareng tim Anda.'
+    }
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: PrivacyView,
+    meta: {
+      hideNav: true,
+      public: true,
+      title: 'Kebijakan Privasi · Listmak',
+      description: 'Kebijakan privasi Listmak: data apa yang kami kumpulkan dan bagaimana kami menggunakannya.'
+    }
+  },
+  {
+    path: '/terms',
+    name: 'Terms',
+    component: TermsView,
+    meta: {
+      hideNav: true,
+      public: true,
+      title: 'Syarat & Ketentuan · Listmak',
+      description: 'Syarat dan ketentuan penggunaan aplikasi Listmak.'
+    }
   },
   {
     path: '/today',
@@ -123,7 +167,23 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior(to) {
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    return { top: 0 }
+  }
+})
+
+// Per-route SEO meta (title + description) for an SPA
+router.afterEach((to) => {
+  document.title = to.meta.title || DEFAULT_TITLE
+  let desc = document.querySelector('meta[name="description"]')
+  if (!desc) {
+    desc = document.createElement('meta')
+    desc.setAttribute('name', 'description')
+    document.head.appendChild(desc)
+  }
+  desc.setAttribute('content', to.meta.description || DEFAULT_DESC)
 })
 
 // Track if initial auth check is done

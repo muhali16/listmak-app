@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /listmak/order/
+Disallow: /listmak/view/
+
+Sitemap: https://listmak.enambelas.dev/sitemap.xml

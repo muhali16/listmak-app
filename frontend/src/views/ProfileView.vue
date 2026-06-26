@@ -92,10 +92,30 @@
       />
     </section>
 
+    <!-- Legal -->
+    <section class="legal-links-section">
+      <router-link to="/privacy" class="legal-link">
+        <i class="pi pi-shield"></i>
+        <span>Kebijakan Privasi</span>
+        <i class="pi pi-angle-right legal-link-arrow"></i>
+      </router-link>
+      <router-link to="/terms" class="legal-link">
+        <i class="pi pi-file"></i>
+        <span>Syarat &amp; Ketentuan</span>
+        <i class="pi pi-angle-right legal-link-arrow"></i>
+      </router-link>
+    </section>
+
     <!-- App Info -->
     <section class="app-info">
       <p class="app-version">ListMak v{{ appVersion }}</p>
-      <p class="app-copyright">&copy; {{ new Date().getFullYear() }} ListMak. All rights reserved.</p>
+      <p class="app-made">
+        Dibuat oleh
+        <a href="https://enambelas.dev" target="_blank" rel="noopener">enambelas.dev</a>
+        ·
+        <a href="mailto:hello@enambelas.dev">hello@enambelas.dev</a>
+      </p>
+      <p class="app-copyright">&copy; {{ new Date().getFullYear() }} enambelas.dev. All rights reserved.</p>
     </section>
   </div>
 </template>
@@ -383,9 +403,60 @@ export default {
   width: 100%;
 }
 
+/* Legal links */
+.legal-links-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.legal-link {
+  background: rgba(30, 41, 59, 0.6);
+  border-radius: 0.75rem;
+  padding: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease;
+}
+
+.legal-link:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.legal-link > .pi:first-child {
+  color: #3b82f6;
+}
+
+.legal-link-arrow {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
 /* App Info */
 .app-info {
   text-align: center;
+}
+
+.app-made {
+  font-size: 0.6875rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.app-made a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.app-made a:hover {
+  text-decoration: underline;
 }
 
 .app-version {
