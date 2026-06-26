@@ -4,9 +4,9 @@
       <!-- App Logo -->
       <div class="login-header">
         <div class="logo-wrapper">
-          <i class="pi pi-check-square" style="font-size: 2.5rem; color: #3b82f6;"></i>
+          <img src="../assets/logo/webp/listmak-icon-128.webp" alt="Listmak" class="logo-icon-img" />
         </div>
-        <h1 class="app-title">ListMak</h1>
+        <h1 class="app-title">Listmak</h1>
         <p class="app-subtitle">Kelola pesanan makanan kantor dengan mudah</p>
       </div>
 
@@ -151,12 +151,11 @@ export default {
   width: 80px;
   height: 80px;
   margin: 0 auto 1rem;
-  background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-  border-radius: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+}
+
+.logo-icon-img {
+  width: 80px;
+  height: 80px;
 }
 
 .app-title {
