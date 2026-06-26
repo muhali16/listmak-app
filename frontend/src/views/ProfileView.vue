@@ -95,7 +95,7 @@
     <!-- App Info -->
     <section class="app-info">
       <p class="app-version">ListMak v{{ appVersion }}</p>
-      <p class="app-copyright">&copy; 2024 ListMak. All rights reserved.</p>
+      <p class="app-copyright">&copy; {{ new Date().getFullYear() }} ListMak. All rights reserved.</p>
     </section>
   </div>
 </template>
