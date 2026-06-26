@@ -27,9 +27,44 @@ export default {
     return apiCall(`/admin/system-logs?${query}`)
   },
   updateUserRole(userId, role) {
-    return apiCall(`/admin/users/${userId}/role`, {
-      method: 'PATCH',
-      body: { role }
-    })
+    return apiCall(`/admin/users/${userId}/role`, { method: 'PATCH', body: { role } })
+  },
+
+  // Listmaks (all users)
+  getAllListmaks(params = {}) {
+    const qs = new URLSearchParams(params).toString()
+    return apiCall(`/admin/listmaks?${qs}`)
+  },
+  updateListmakStatus(id, status) {
+    return apiCall(`/listmaks/${id}`, { method: 'PUT', body: { status } })
+  },
+  deleteListmak(id) {
+    return apiCall(`/listmaks/${id}`, { method: 'DELETE' })
+  },
+  getActiveShares(listmakId) {
+    return apiCall(`/listmaks/${listmakId}/active-shares`)
+  },
+  deleteShareLink(id) {
+    return apiCall(`/share-links/${id}`, { method: 'DELETE' })
+  },
+  deleteViewShare(id) {
+    return apiCall(`/admin/view-shares/${id}`, { method: 'DELETE' })
+  },
+  getListmakSummary(listmakId) {
+    return apiCall(`/listmaks/${listmakId}/summary`)
+  },
+  deleteSummary(listmakId) {
+    return apiCall(`/admin/summaries/listmak/${listmakId}`, { method: 'DELETE' })
+  },
+
+  // Price Catalog
+  getPriceCatalog() {
+    return apiCall('/admin/price-catalog')
+  },
+  upsertPriceCatalog(entries) {
+    return apiCall('/admin/price-catalog', { method: 'POST', body: entries })
+  },
+  deletePriceCatalog(id) {
+    return apiCall(`/admin/price-catalog/${id}`, { method: 'DELETE' })
   }
 }

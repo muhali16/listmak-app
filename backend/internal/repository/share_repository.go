@@ -70,6 +70,7 @@ type ViewShareRepository interface {
 	CreateViewShare(viewShare models.ViewShare) (models.ViewShare, error)
 	GetViewShareByViewId(viewId string) (models.ViewShare, error)
 	GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error)
+	Delete(id uint) error
 }
 
 type viewShareRepository struct {
@@ -95,6 +96,10 @@ func (r *viewShareRepository) GetViewShareByViewId(viewId string) (models.ViewSh
 		return models.ViewShare{}, err
 	}
 	return viewShare, nil
+}
+
+func (r *viewShareRepository) Delete(id uint) error {
+	return r.db.Delete(&models.ViewShare{}, id).Error
 }
 
 func (r *viewShareRepository) GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error) {

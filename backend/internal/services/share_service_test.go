@@ -68,6 +68,8 @@ func (f *fakeViewShareRepo) GetViewShareByViewId(viewId string) (models.ViewShar
 	return vs, nil
 }
 
+func (f *fakeViewShareRepo) Delete(id uint) error { return nil }
+
 func (f *fakeViewShareRepo) GetViewShareByListmakId(listmakId uint) (*models.ViewShare, error) {
 	for _, vs := range f.store {
 		if vs.ListmakID == listmakId {

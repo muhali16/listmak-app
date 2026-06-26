@@ -23,6 +23,8 @@ import SharedListMakView from './views/SharedListMakView.vue'
 import ViewListMakView from './views/ViewListMakView.vue'
 import AdminAILogsView from './views/AdminAILogsView.vue'
 import AdminSystemLogsView from './views/AdminSystemLogsView.vue'
+import AdminPriceCatalogView from './views/AdminPriceCatalogView.vue'
+import AdminListmaksView from './views/AdminListmaksView.vue'
 import ChangelogView from './views/ChangelogView.vue'
 
 // Router configuration
@@ -97,6 +99,18 @@ const routes = [
     path: '/admin/system-logs',
     name: 'AdminSystemLogs',
     component: AdminSystemLogsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/price-catalog',
+    name: 'AdminPriceCatalog',
+    component: AdminPriceCatalogView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/listmaks',
+    name: 'AdminListmaks',
+    component: AdminListmaksView,
     meta: { requiresAuth: true }
   },
   {

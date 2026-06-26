@@ -53,7 +53,7 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	listmakController := NewListmakController(listmakService)
 	orderController := NewOrderController(orderService)
 	shareController := NewShareController(shareService, orderService, aiService)
-	adminController := NewAdminController(aiLogRepo, systemLogRepo, userRepo)
+	adminController := NewAdminController(aiLogRepo, systemLogRepo, userRepo, listmakRepo, catalogRepo, viewShareRepo, summaryRepo)
 	summaryController := NewSummaryController(summaryService)
 	aiController := NewAIController(aiService)
 

@@ -9,6 +9,7 @@ import (
 type SummaryRepository interface {
 	GetByListmakID(listmakID uint) (*models.ListmakSummary, error)
 	Upsert(summary *models.ListmakSummary) error
+	DeleteByListmakID(listmakID uint) error
 }
 
 type summaryRepository struct {
@@ -26,6 +27,10 @@ func (r *summaryRepository) GetByListmakID(listmakID uint) (*models.ListmakSumma
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (r *summaryRepository) DeleteByListmakID(listmakID uint) error {
+	return r.db.Where("listmak_id = ?", listmakID).Delete(&models.ListmakSummary{}).Error
 }
 
 func (r *summaryRepository) Upsert(summary *models.ListmakSummary) error {

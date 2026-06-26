@@ -28,7 +28,10 @@ func (r *listmakRepository) GetAllListmaks(page, limit int, status string, start
 	var listmaks []models.Listmak
 	var total int64
 
-	query := r.db.Model(&models.Listmak{}).Where("created_by = ?", userId)
+	query := r.db.Model(&models.Listmak{})
+	if userId > 0 {
+		query = query.Where("created_by = ?", userId)
+	}
 
 	if status != "" {
 		query = query.Where("status = ?", status)

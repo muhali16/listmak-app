@@ -7,7 +7,13 @@
       class="nav-item"
       :class="{ active: isActive(item.path) }"
     >
-      <i :class="item.icon"></i>
+      <template v-if="item.path === '/profile'">
+        <div class="nav-avatar-mini" :class="{ 'nav-avatar-mini--admin': isAdmin }">
+          <img v-if="currentUser.avatar" :src="currentUser.avatar" :alt="currentUser.name" referrerpolicy="no-referrer" />
+          <span v-else>{{ userInitials }}</span>
+        </div>
+      </template>
+      <i v-else :class="item.icon"></i>
       <span>{{ item.label }}</span>
     </router-link>
 
@@ -25,6 +31,26 @@
     <!-- Admin dropdown popup -->
     <transition name="admin-popup">
       <div v-if="adminMenuOpen" class="admin-popup">
+        <router-link
+          to="/admin/listmaks"
+          class="admin-popup-item"
+          :class="{ active: $route.path === '/admin/listmaks' }"
+          @click="adminMenuOpen = false"
+        >
+          <i class="pi pi-list"></i>
+          <span>Kelola Listmak</span>
+        </router-link>
+        <div class="admin-popup-divider"></div>
+        <router-link
+          to="/admin/price-catalog"
+          class="admin-popup-item"
+          :class="{ active: $route.path === '/admin/price-catalog' }"
+          @click="adminMenuOpen = false"
+        >
+          <i class="pi pi-tag"></i>
+          <span>Price Catalog</span>
+        </router-link>
+        <div class="admin-popup-divider"></div>
         <router-link
           to="/admin/ai-logs"
           class="admin-popup-item"
@@ -61,8 +87,15 @@ export default {
     }
   },
   computed: {
+    currentUser() {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    },
     isAdmin() {
-      return JSON.parse(localStorage.getItem('user') || '{}')?.role === 'admin'
+      return this.currentUser?.role === 'admin'
+    },
+    userInitials() {
+      const name = this.currentUser?.name || ''
+      return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
     },
     navItems() {
       return [
@@ -211,5 +244,40 @@ export default {
   .bottom-nav {
     display: none;
   }
+}
+
+.nav-avatar-mini {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #475569;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+}
+
+.nav-avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nav-avatar-mini--admin {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+.nav-item.active .nav-avatar-mini {
+  border-color: #3b82f6;
+}
+
+.nav-item.active .nav-avatar-mini--admin {
+  border-color: #f59e0b;
 }
 </style>

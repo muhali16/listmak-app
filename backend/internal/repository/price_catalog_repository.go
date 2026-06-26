@@ -10,6 +10,7 @@ type PriceCatalogRepository interface {
 	GetAll() ([]models.PriceCatalog, error)
 	FuzzyMatch(itemDetail string) (*models.PriceCatalog, error)
 	UpsertBatch(entries []models.PriceCatalog) error
+	Delete(id uint) error
 }
 
 type priceCatalogRepository struct {
@@ -36,6 +37,10 @@ func (r *priceCatalogRepository) FuzzyMatch(itemDetail string) (*models.PriceCat
 		return nil, err
 	}
 	return &entry, nil
+}
+
+func (r *priceCatalogRepository) Delete(id uint) error {
+	return r.db.Delete(&models.PriceCatalog{}, id).Error
 }
 
 func (r *priceCatalogRepository) UpsertBatch(entries []models.PriceCatalog) error {

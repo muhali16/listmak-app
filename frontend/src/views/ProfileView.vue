@@ -9,24 +9,24 @@
     <!-- Profile Card -->
     <section class="profile-section">
       <div class="profile-card">
-        <div class="profile-avatar">
-          <img 
-            v-if="user && user.avatar" 
-            :src="user.avatar" 
+        <div class="profile-avatar" :class="{ 'profile-avatar--admin': isAdmin }">
+          <img
+            v-if="user && user.avatar"
+            :src="user.avatar"
             :alt="user.name"
             class="avatar-image"
             referrerpolicy="no-referrer"
           />
-          <div v-else class="avatar-placeholder">
+          <div v-else class="avatar-placeholder" :class="{ 'avatar-placeholder--admin': isAdmin }">
             {{ userInitials }}
           </div>
         </div>
-        
+
         <h2 class="profile-name">{{ userName }}</h2>
         <p class="profile-email">{{ userEmail }}</p>
-        
-        <div class="profile-badge">
-          <i class="pi pi-verified"></i>
+
+        <div class="profile-badge" :class="{ 'profile-badge--admin': isAdmin }">
+          <i :class="isAdmin ? 'pi pi-shield' : 'pi pi-verified'"></i>
           <span>{{ userRole }}</span>
         </div>
       </div>
@@ -119,6 +119,9 @@ export default {
     }
   },
   computed: {
+    isAdmin() {
+      return this.user?.role === 'admin'
+    },
     userName() {
       return this.user?.name || 'User'
     },
@@ -245,6 +248,20 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   color: white;
+}
+
+.profile-avatar--admin {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+.avatar-placeholder--admin {
+  background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+.profile-badge--admin {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
 }
 
 .profile-name {

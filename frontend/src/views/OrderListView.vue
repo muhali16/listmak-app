@@ -1001,16 +1001,13 @@
                                             class="sum-edit-rp"
                                             >Rp</span
                                         >
-                                        <input
-                                            v-model.number="
+                                        <PriceInput
+                                            v-model="
                                                 confirmPriceMap[
                                                     `${vendor.name}::${item.name}`
                                                 ]
                                             "
-                                            type="number"
                                             class="sum-price-input"
-                                            placeholder="0"
-                                            min="0"
                                             :disabled="
                                                 confirmingPrices
                                             "
@@ -1174,17 +1171,10 @@
                                 >(opsional)</span
                             ></label
                         >
-                        <input
-                            v-model.number="
-                                editForm.price
-                            "
+                        <PriceInput
+                            v-model="editForm.price"
                             class="form-input"
-                            type="number"
-                            placeholder="0"
-                            min="0"
-                            :disabled="
-                                editSubmitting
-                            "
+                            :disabled="editSubmitting"
                         />
                     </div>
                     <div
@@ -1373,17 +1363,10 @@
                                 >(opsional)</span
                             ></label
                         >
-                        <input
-                            v-model.number="
-                                singleForm.price
-                            "
+                        <PriceInput
+                            v-model="singleForm.price"
                             class="form-input"
-                            type="number"
-                            placeholder="0"
-                            min="0"
-                            :disabled="
-                                addSubmitting
-                            "
+                            :disabled="addSubmitting"
                         />
                     </div>
                     <div
@@ -1652,17 +1635,10 @@
                                 class="confirm-order-rp"
                                 >Rp</span
                             >
-                            <input
-                                v-model.number="
-                                    item.editPrice
-                                "
-                                type="number"
+                            <PriceInput
+                                v-model="item.editPrice"
                                 class="confirm-order-price-input"
-                                placeholder="0"
-                                min="0"
-                                :disabled="
-                                    addSubmitting
-                                "
+                                :disabled="addSubmitting"
                             />
                             <button
                                 class="confirm-order-delete-btn"
@@ -1722,10 +1698,11 @@
 <script>
 import Toast from "primevue/toast";
 import { listmak, share } from "../api";
+import PriceInput from "../components/PriceInput.vue";
 
 export default {
     name: "OrderListView",
-    components: { Toast },
+    components: { Toast, PriceInput },
 
     data() {
         return {
