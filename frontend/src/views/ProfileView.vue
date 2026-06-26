@@ -94,7 +94,7 @@
 
     <!-- App Info -->
     <section class="app-info">
-      <p class="app-version">ListMak v1.0.0</p>
+      <p class="app-version">ListMak v{{ appVersion }}</p>
       <p class="app-copyright">&copy; 2024 ListMak. All rights reserved.</p>
     </section>
   </div>
@@ -103,6 +103,7 @@
 <script>
 import Button from 'primevue/button'
 import { getCurrentUser, logout } from '../api/auth'
+import changelog from '../data/changelog.json'
 
 export default {
   name: 'ProfileView',
@@ -113,7 +114,8 @@ export default {
     return {
       user: null,
       totalOrders: 0,
-      totalContacts: 0
+      totalContacts: 0,
+      appVersion: changelog[0]?.version ?? '-'
     }
   },
   computed: {
