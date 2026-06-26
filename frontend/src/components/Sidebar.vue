@@ -53,6 +53,7 @@
         <i class="pi pi-sign-out"></i>
         <span>Logout</span>
       </button>
+      <div class="version-info">v{{ currentVersion }}</div>
     </div>
   </aside>
 </template>
@@ -77,6 +78,9 @@ export default {
     },
     hasUpdate() {
       return localStorage.getItem('lastSeenVersion') !== changelog[0]?.version
+    },
+    currentVersion() {
+      return changelog[0]?.version ?? '-'
     },
     navItems() {
       return [
@@ -277,5 +281,13 @@ export default {
 .logout-btn:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
+}
+
+.version-info {
+  margin-top: 0.5rem;
+  padding: 0 1rem;
+  font-size: 0.7rem;
+  color: #475569;
+  text-align: center;
 }
 </style>
