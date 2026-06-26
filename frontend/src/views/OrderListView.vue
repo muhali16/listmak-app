@@ -2972,6 +2972,7 @@ export default {
                     this.editForm.id,
                 );
                 await this.refreshOrders();
+                this.summaryData = null;
                 this.showEditModal = false;
             } catch (err) {
                 this.editError =
