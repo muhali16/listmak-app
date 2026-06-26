@@ -1,0 +1,26 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-06-27",
+    "entries": [
+      { "type": "security", "message": "Perbaiki CSRF pada OAuth login Google" },
+      { "type": "security", "message": "Perbaiki bug JWT secret tidak terbaca saat startup" },
+      { "type": "security", "message": "Cookie autentikasi kini pakai flag Secure di production dan SameSite=Lax" },
+      { "type": "security", "message": "Tambah rate limiting: 5 req/detik global, 6 req/menit untuk endpoint login" },
+      { "type": "security", "message": "Tambah header keamanan: CSP, HSTS, X-Frame-Options, dll" },
+      { "type": "security", "message": "Batas ukuran request body: 1MB" },
+      { "type": "fix", "message": "Share ID dan View ID kini retry otomatis jika terjadi tabrakan ID" }
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-06-24",
+    "entries": [
+      { "type": "feat", "message": "Fitur parsing order otomatis dengan AI" },
+      { "type": "feat", "message": "Ringkasan harga otomatis dengan AI" },
+      { "type": "feat", "message": "Scan vendor dengan AI" },
+      { "type": "feat", "message": "System logs dan AI logs untuk Admin" },
+      { "type": "fix", "message": "Cache ringkasan dibersihkan saat order dihapus melalui modal edit" }
+    ]
+  }
+]

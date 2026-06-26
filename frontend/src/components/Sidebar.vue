@@ -44,6 +44,10 @@
     </nav>
 
     <div class="sidebar-footer">
+      <router-link to="/changelog" class="changelog-link" :class="{ active: $route.path === '/changelog' }">
+        <i class="pi pi-megaphone"></i>
+        <span>Pembaruan</span>
+      </router-link>
       <button @click="handleLogout" class="logout-btn">
         <i class="pi pi-sign-out"></i>
         <span>Logout</span>
@@ -219,6 +223,26 @@ export default {
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.changelog-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #94a3b8;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  margin-bottom: 0.25rem;
+}
+
+.changelog-link:hover,
+.changelog-link.active {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
 }
 
 .logout-btn {

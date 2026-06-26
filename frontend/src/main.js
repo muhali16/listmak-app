@@ -23,6 +23,7 @@ import SharedListMakView from './views/SharedListMakView.vue'
 import ViewListMakView from './views/ViewListMakView.vue'
 import AdminAILogsView from './views/AdminAILogsView.vue'
 import AdminSystemLogsView from './views/AdminSystemLogsView.vue'
+import ChangelogView from './views/ChangelogView.vue'
 
 // Router configuration
 const routes = [
@@ -96,6 +97,12 @@ const routes = [
     path: '/admin/system-logs',
     name: 'AdminSystemLogs',
     component: AdminSystemLogsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/changelog',
+    name: 'Changelog',
+    component: ChangelogView,
     meta: { requiresAuth: true }
   }
 ]
