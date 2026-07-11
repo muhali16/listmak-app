@@ -1,5 +1,43 @@
 [
   {
+    "version": "1.3.0",
+    "date": "2026-07-12",
+    "entries": [
+      {
+        "type": "feat",
+        "message": "Pembayaran QRIS untuk pemesan lewat link share: isi pesanan, langsung bayar total pakai QR"
+      },
+      {
+        "type": "feat",
+        "message": "Kode QR berlaku 10 menit dengan hitung mundur, plus simpan QR jadi gambar (order ID, tanggal, nominal)"
+      },
+      {
+        "type": "feat",
+        "message": "Batalkan pembayaran otomatis membatalkan QR, isian pesanan tetap tersimpan untuk bayar ulang"
+      },
+      {
+        "type": "feat",
+        "message": "Rincian kurang/lebih bayar per orang saat OB menyesuaikan harga; status lunas via QR terkunci otomatis"
+      },
+      {
+        "type": "feat",
+        "message": "Halaman Admin Pembayaran: daftar transaksi, ringkasan pendapatan, detail, log, sinkron & batalkan"
+      },
+      {
+        "type": "security",
+        "message": "Pembayaran diverifikasi langsung ke Pakasir; webhook dan screenshot QR tidak bisa memalsukan status lunas"
+      },
+      {
+        "type": "security",
+        "message": "Transaksi pending yang lewat 10 menit dibatalkan otomatis agar QR lama tidak bisa dibayar telat"
+      },
+      {
+        "type": "security",
+        "message": "Order hanya tercatat setelah pembayaran terverifikasi; transaksi mode sandbox tidak dihitung sebagai pendapatan"
+      }
+    ]
+  },
+  {
     "version": "1.2.0",
     "date": "2026-06-27",
     "entries": [
