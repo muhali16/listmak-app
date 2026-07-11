@@ -276,10 +276,10 @@ export default {
 .sidebar {
     display: none;
     position: fixed;
-    top: 0;
+    top: var(--testing-banner-h, 0px);
     left: 0;
     width: 240px;
-    height: 100vh;
+    height: calc(100vh - var(--testing-banner-h, 0px));
     background: #1e293b;
     border-right: 1px solid
         rgba(255, 255, 255, 0.08);

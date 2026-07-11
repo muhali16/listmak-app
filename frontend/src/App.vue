@@ -1,5 +1,6 @@
 <template>
-  <div class="dark-mode">
+  <div class="dark-mode" :class="{ 'testing-on': testing }">
+    <TestingBanner v-if="testing" />
     <OfflineModal />
     <Toast position="top-center" />
     
@@ -21,6 +22,7 @@ import Toast from 'primevue/toast'
 import OfflineModal from './components/OfflineModal.vue'
 import BottomNav from './components/BottomNav.vue'
 import Sidebar from './components/Sidebar.vue'
+import TestingBanner from './components/TestingBanner.vue'
 
 export default {
   name: 'App',
@@ -28,7 +30,13 @@ export default {
     Toast,
     OfflineModal,
     BottomNav,
-    Sidebar
+    Sidebar,
+    TestingBanner
+  },
+  data() {
+    return {
+      testing: import.meta.env.VITE_TESTING_MODE === 'true'
+    }
   },
   computed: {
     showNavigation() {
@@ -42,6 +50,13 @@ export default {
 .dark-mode {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Testing mode: reserve space for the fixed banner. The CSS var inherits into
+   child components (Sidebar reads it to offset its fixed top). */
+.dark-mode.testing-on {
+  --testing-banner-h: 2.25rem;
+  padding-top: 2.25rem;
 }
 
 .main-content {
