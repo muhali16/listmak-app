@@ -42,6 +42,16 @@
         </router-link>
         <div class="admin-popup-divider"></div>
         <router-link
+          to="/admin/payments"
+          class="admin-popup-item"
+          :class="{ active: $route.path === '/admin/payments' }"
+          @click="adminMenuOpen = false"
+        >
+          <i class="pi pi-wallet"></i>
+          <span>Pembayaran</span>
+        </router-link>
+        <div class="admin-popup-divider"></div>
+        <router-link
           to="/admin/price-catalog"
           class="admin-popup-item"
           :class="{ active: $route.path === '/admin/price-catalog' }"

@@ -94,6 +94,18 @@
                         >
                     </router-link>
                     <router-link
+                        to="/admin/payments"
+                        class="nav-subitem"
+                        :class="{
+                            active:
+                                $route.path ===
+                                '/admin/payments',
+                        }"
+                    >
+                        <i class="pi pi-wallet"></i>
+                        <span>Pembayaran</span>
+                    </router-link>
+                    <router-link
                         to="/admin/price-catalog"
                         class="nav-subitem"
                         :class="{

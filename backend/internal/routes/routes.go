@@ -34,4 +34,5 @@ func Routes(r *gin.Engine, systemLogRepo repository.SystemLogRepository) {
 	AdminRoutes(v1, container.AdminController)
 	SummaryRoutes(v1, container.SummaryController)
 	AIRoutes(v1, container.AIController)
+	PaymentRoutes(v1, container.PaymentController)
 }

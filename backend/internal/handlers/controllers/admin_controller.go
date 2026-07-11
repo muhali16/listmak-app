@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/muhali16/listmak-service/internal/models"
 	"github.com/muhali16/listmak-service/internal/repository"
+	"github.com/muhali16/listmak-service/internal/services"
 	"github.com/muhali16/listmak-service/pkg/utils"
+	"gorm.io/gorm"
 )
 
 type AdminController interface {
@@ -21,16 +24,24 @@ type AdminController interface {
 	DeletePriceCatalog(c *gin.Context)
 	DeleteViewShare(c *gin.Context)
 	DeleteSummary(c *gin.Context)
+	GetPayments(c *gin.Context)
+	GetPaymentDetail(c *gin.Context)
+	ReconcilePayment(c *gin.Context)
+	CancelPayment(c *gin.Context)
 }
 
 type adminController struct {
-	aiLogRepo     repository.AILogRepository
-	systemLogRepo repository.SystemLogRepository
-	userRepo      repository.UserRepository
-	listmakRepo   repository.ListmakRepository
-	catalogRepo   repository.PriceCatalogRepository
-	viewShareRepo repository.ViewShareRepository
-	summaryRepo   repository.SummaryRepository
+	aiLogRepo      repository.AILogRepository
+	systemLogRepo  repository.SystemLogRepository
+	userRepo       repository.UserRepository
+	listmakRepo    repository.ListmakRepository
+	catalogRepo    repository.PriceCatalogRepository
+	viewShareRepo  repository.ViewShareRepository
+	summaryRepo    repository.SummaryRepository
+	paymentRepo    repository.PaymentRepository
+	paymentLogRepo repository.PaymentLogRepository
+	orderRepo      repository.OrderRepository
+	paymentService services.PaymentService
 }
 
 func NewAdminController(
@@ -41,15 +52,23 @@ func NewAdminController(
 	catalogRepo repository.PriceCatalogRepository,
 	viewShareRepo repository.ViewShareRepository,
 	summaryRepo repository.SummaryRepository,
+	paymentRepo repository.PaymentRepository,
+	paymentLogRepo repository.PaymentLogRepository,
+	orderRepo repository.OrderRepository,
+	paymentService services.PaymentService,
 ) AdminController {
 	return &adminController{
-		aiLogRepo:     aiLogRepo,
-		systemLogRepo: systemLogRepo,
-		userRepo:      userRepo,
-		listmakRepo:   listmakRepo,
-		catalogRepo:   catalogRepo,
-		viewShareRepo: viewShareRepo,
-		summaryRepo:   summaryRepo,
+		aiLogRepo:      aiLogRepo,
+		systemLogRepo:  systemLogRepo,
+		userRepo:       userRepo,
+		listmakRepo:    listmakRepo,
+		catalogRepo:    catalogRepo,
+		viewShareRepo:  viewShareRepo,
+		summaryRepo:    summaryRepo,
+		paymentRepo:    paymentRepo,
+		paymentLogRepo: paymentLogRepo,
+		orderRepo:      orderRepo,
+		paymentService: paymentService,
 	}
 }
 
@@ -238,4 +257,110 @@ func (ac *adminController) DeleteSummary(c *gin.Context) {
 		return
 	}
 	utils.SendResponse(c, http.StatusOK, true, "Summary deleted", nil)
+}
+
+// ---- Payments (admin) ----
+
+// GetPayments godoc
+// @Summary  List payments with filters + revenue stats
+// @Tags     admin
+// @Produce  json
+// @Param    page    query  int     false  "Page"
+// @Param    status  query  string  false  "pending|completed|cancelled|expired"
+// @Param    search  query  string  false  "order_id / guest name / whatsapp"
+// @Success  200  {object}  utils.Response
+// @Router   /admin/payments [get]
+func (ac *adminController) GetPayments(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	status := c.Query("status")
+	search := c.Query("search")
+
+	payments, total, err := ac.paymentRepo.ListForAdmin(page, 30, status, search)
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to retrieve payments", nil)
+		return
+	}
+	stats, err := ac.paymentRepo.Stats()
+	if err != nil {
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to compute stats", nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "Payments retrieved", gin.H{
+		"payments": payments,
+		"total":    total,
+		"page":     page,
+		"stats":    stats,
+	})
+}
+
+// GetPaymentDetail godoc
+// @Summary  Payment detail + covered orders
+// @Tags     admin
+// @Produce  json
+// @Param    orderId  path  string  true  "Invoice / order id"
+// @Success  200  {object}  utils.Response
+// @Router   /admin/payments/{orderId} [get]
+func (ac *adminController) GetPaymentDetail(c *gin.Context) {
+	orderID := c.Param("orderId")
+	payment, err := ac.paymentRepo.GetByOrderID(orderID)
+	if err != nil {
+		utils.SendResponse(c, http.StatusNotFound, false, "Payment tidak ditemukan", nil)
+		return
+	}
+	orders, _ := ac.orderRepo.GetByPaymentID(payment.ID)
+	logs, _ := ac.paymentLogRepo.ListByOrderID(payment.OrderID)
+	utils.SendResponse(c, http.StatusOK, true, "OK", gin.H{
+		"payment": payment,
+		"orders":  orders,
+		"logs":    logs,
+	})
+}
+
+// ReconcilePayment godoc
+// @Summary  Re-sync a payment status from Pakasir (authoritative)
+// @Tags     admin
+// @Produce  json
+// @Param    orderId  path  string  true  "Invoice / order id"
+// @Success  200  {object}  utils.Response
+// @Router   /admin/payments/{orderId}/reconcile [post]
+func (ac *adminController) ReconcilePayment(c *gin.Context) {
+	orderID := c.Param("orderId")
+	payment, err := ac.paymentService.GetStatus(orderID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.SendResponse(c, http.StatusNotFound, false, "Payment tidak ditemukan", nil)
+			return
+		}
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal reconcile", nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "Status disinkronkan", payment)
+}
+
+// CancelPayment godoc
+// @Summary  Cancel a pending payment (admin)
+// @Tags     admin
+// @Produce  json
+// @Param    orderId  path  string  true  "Invoice / order id"
+// @Success  200  {object}  utils.Response
+// @Failure  409  {object}  utils.Response
+// @Router   /admin/payments/{orderId}/cancel [post]
+func (ac *adminController) CancelPayment(c *gin.Context) {
+	orderID := c.Param("orderId")
+	if err := ac.paymentService.Cancel(orderID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.SendResponse(c, http.StatusNotFound, false, "Payment tidak ditemukan", nil)
+			return
+		}
+		if errors.Is(err, services.ErrAlreadyPaid) {
+			utils.SendResponse(c, http.StatusConflict, false, "Sudah lunas, tidak bisa dibatalkan", nil)
+			return
+		}
+		utils.SendResponse(c, http.StatusInternalServerError, false, "Gagal membatalkan", nil)
+		return
+	}
+	utils.SendResponse(c, http.StatusOK, true, "Pembayaran dibatalkan", nil)
 }

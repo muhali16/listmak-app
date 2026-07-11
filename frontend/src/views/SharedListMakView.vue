@@ -163,7 +163,7 @@
             <li v-for="(o, i) in bulkOrdersWithWarnings" :key="i" class="bulk-preview-item">
               <span class="preview-name">{{ o.name }}</span>
               <span class="preview-detail">{{ o.order_detail }}</span>
-              <span v-if="!o.hasLocation" class="location-warning">⚠️ Belum tulis lokasi</span>
+              <span v-if="!o.hasLocation" class="location-warning">Belum tulis lokasi</span>
             </li>
           </ul>
         </div>
@@ -192,6 +192,14 @@
           <div class="confirm-header">
             <h2 class="confirm-title">Konfirmasi Pesanan</h2>
             <p class="confirm-subtitle">AI sudah parsing pesananmu. Cek & edit harga sebelum kirim.</p>
+          </div>
+
+          <div class="price-warning">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>
+              <strong>Harga ditentukan otomatis oleh AI — wajib dicek!</strong>
+              Total di bawah ini adalah <strong>jumlah yang harus kamu bayar</strong> setelah submit pesanan. Pastikan setiap harga sudah benar.
+            </span>
           </div>
 
           <div v-if="confirmItems.length === 0" class="confirm-empty">
@@ -234,17 +242,53 @@
             </div>
           </div>
 
+          <!-- Total -->
+          <div class="pay-total-row">
+            <span>Total bayar</span>
+            <strong>Rp {{ formatRupiah(confirmTotal) }}</strong>
+          </div>
+
+          <!-- Payer identity (required for payment) -->
+          <div class="payer-fields">
+            <div class="form-group">
+              <label class="form-label">Nama pembayar</label>
+              <input
+                v-model="payer.name"
+                class="form-input"
+                type="text"
+                placeholder="Nama kamu"
+                :disabled="confirmingSubmit"
+              />
+            </div>
+            <div class="form-group" style="margin-bottom: 0">
+              <label class="form-label">No. WhatsApp</label>
+              <input
+                v-model="payer.whatsapp"
+                class="form-input"
+                type="tel"
+                inputmode="numeric"
+                placeholder="08xxxxxxxxxx"
+                :disabled="confirmingSubmit"
+              />
+            </div>
+          </div>
+
+          <p class="wa-note">
+            <i class="pi pi-whatsapp"></i>
+            <span>Jika ada kelebihan atau kekurangan pembayaran, kamu akan langsung diberitahu lewat notifikasi WhatsApp.</span>
+          </p>
+
           <p v-if="confirmError" class="form-error">{{ confirmError }}</p>
 
           <button
             class="submit-btn"
             style="margin-top: 1rem"
-            :disabled="confirmingSubmit || confirmItems.length === 0"
-            @click="confirmSubmit"
+            :disabled="confirmingSubmit || confirmItems.length === 0 || confirmTotal <= 0 || !payer.name.trim() || !payer.whatsapp.trim()"
+            @click="proceedToPayment"
           >
             <i v-if="confirmingSubmit" class="pi pi-spin pi-spinner"></i>
-            <i v-else class="pi pi-check"></i>
-            <span>{{ confirmingSubmit ? 'Mengirim...' : `Kirim ${confirmItems.length} pesanan` }}</span>
+            <i v-else class="pi pi-qrcode"></i>
+            <span>{{ confirmingSubmit ? 'Membuat pembayaran...' : `Bayar Rp ${formatRupiah(confirmTotal)}` }}</span>
           </button>
 
           <button
@@ -254,6 +298,128 @@
           >
             Batalkan
           </button>
+        </div>
+      </div>
+
+      <!-- Payment QR modal -->
+      <div v-if="showPaymentModal" class="confirm-overlay">
+        <div class="confirm-sheet pay-sheet">
+          <div class="sheet-handle"></div>
+
+          <!-- Success -->
+          <div v-if="paymentStatus === 'completed'" class="pay-success">
+            <div class="state-icon state-icon--green">
+              <i class="pi pi-check-circle"></i>
+            </div>
+            <h2 class="confirm-title">Pembayaran berhasil!</h2>
+            <p class="confirm-subtitle">Pesananmu sudah tercatat & lunas. Terima kasih.</p>
+            <button class="submit-btn" style="margin-top: 1.25rem" @click="finishPayment">
+              <i class="pi pi-check"></i>
+              <span>Selesai</span>
+            </button>
+          </div>
+
+          <!-- Cancelled remotely (admin / expiry) -->
+          <div v-else-if="paymentStatus === 'cancelled'" class="pay-success">
+            <div class="state-icon state-icon--red">
+              <i class="pi pi-ban"></i>
+            </div>
+            <h2 class="confirm-title">Pembayaran dibatalkan</h2>
+            <p class="confirm-subtitle">
+              Pembayaran ini dibatalkan dan pesanan <strong>belum terkirim</strong>. Isian pesananmu masih tersimpan — bisa dicek lagi lalu bayar ulang.
+            </p>
+            <button class="submit-btn" style="margin-top: 1.25rem" @click="retryFromExpired">
+              <i class="pi pi-qrcode"></i>
+              <span>Buat QR baru</span>
+            </button>
+            <button class="cancel-confirm-btn" @click="resetPayment">Tutup</button>
+          </div>
+
+          <!-- Cancel confirmation -->
+          <div v-else-if="showCancelConfirm" class="pay-success">
+            <div class="state-icon state-icon--red">
+              <i class="pi pi-exclamation-triangle"></i>
+            </div>
+            <h2 class="confirm-title">Batalkan pembayaran?</h2>
+            <p class="confirm-subtitle">
+              Kode QR dibatalkan dan pesanan <strong>belum terkirim</strong>. Isian pesananmu <strong>masih tersimpan</strong> — bisa dicek lagi lalu bayar ulang.
+            </p>
+            <p v-if="cancelError" class="form-error" style="margin-top: 0.75rem">{{ cancelError }}</p>
+            <button
+              class="submit-btn"
+              style="margin-top: 1.25rem; background: linear-gradient(135deg, #ef4444, #b91c1c)"
+              :disabled="cancelling"
+              @click="confirmCancel"
+            >
+              <i v-if="cancelling" class="pi pi-spin pi-spinner"></i>
+              <i v-else class="pi pi-times"></i>
+              <span>{{ cancelling ? 'Membatalkan...' : 'Ya, batalkan' }}</span>
+            </button>
+            <button class="cancel-confirm-btn" :disabled="cancelling" @click="dismissCancel">
+              Tidak, lanjut bayar
+            </button>
+          </div>
+
+          <!-- QR expired -->
+          <div v-else-if="qrExpired" class="pay-success">
+            <div class="state-icon state-icon--red">
+              <i class="pi pi-clock"></i>
+            </div>
+            <h2 class="confirm-title">Waktu bayar habis</h2>
+            <p class="confirm-subtitle">
+              Kode QR sudah kedaluwarsa (berlaku 10 menit). Isian pesananmu masih tersimpan — buat QR baru untuk bayar lagi.
+            </p>
+            <button class="submit-btn" style="margin-top: 1.25rem" @click="retryFromExpired">
+              <i class="pi pi-qrcode"></i>
+              <span>Buat QR baru</span>
+            </button>
+            <button class="cancel-confirm-btn" @click="resetPayment">Tutup</button>
+          </div>
+
+          <!-- Waiting for payment -->
+          <template v-else>
+            <div class="confirm-header">
+              <h2 class="confirm-title">Scan untuk Bayar</h2>
+              <p class="confirm-subtitle">QRIS · semua e-wallet & mobile banking</p>
+            </div>
+
+            <!-- Countdown -->
+            <div class="qr-countdown" :class="{ 'qr-countdown--urgent': qrUrgent }">
+              <i class="pi pi-clock"></i>
+              <span>Bayar dalam <strong>{{ qrRemaining }}</strong></span>
+            </div>
+
+            <div class="qr-box">
+              <img v-if="qrDataUrl" :src="qrDataUrl" alt="Kode QRIS pembayaran" class="qr-img" />
+              <div v-else class="qr-loading"><i class="pi pi-spin pi-spinner"></i></div>
+            </div>
+
+            <div class="pay-amount">Rp {{ formatRupiah(paymentTotal) }}</div>
+
+            <div class="qr-meta">
+              <span class="qr-meta-label">Order ID</span>
+              <span class="qr-meta-value">{{ paymentOrderId }}</span>
+            </div>
+
+            <button class="save-qr-btn" @click="saveQr">
+              <i class="pi pi-download"></i>
+              <span>Simpan QR</span>
+            </button>
+
+            <div class="pay-status-row">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Menunggu pembayaran...</span>
+            </div>
+
+            <button class="submit-btn" :disabled="checkingStatus" @click="() => checkPaymentNow(false)">
+              <i v-if="checkingStatus" class="pi pi-spin pi-spinner"></i>
+              <i v-else class="pi pi-refresh"></i>
+              <span>{{ checkingStatus ? 'Mengecek...' : 'Saya sudah bayar' }}</span>
+            </button>
+            <button class="cancel-confirm-btn" :disabled="checkingStatus" @click="askCancel">
+              Batalkan
+            </button>
+          </template>
         </div>
       </div>
 
@@ -293,6 +459,7 @@
 </template>
 
 <script>
+import QRCode from 'qrcode'
 import { share } from '../api'
 
 export default {
@@ -324,6 +491,25 @@ export default {
       confirmItems: [],
       confirmError: '',
       confirmingSubmit: false,
+      // Payment flow
+      payer: { name: '', whatsapp: '' },
+      showPaymentModal: false,
+      qrDataUrl: '',
+      paymentOrderId: '',
+      paymentTotal: 0,
+      paymentExpiresAt: null,
+      paymentStatus: 'pending',
+      pollTimer: null,
+      checkingStatus: false,
+      showCancelConfirm: false,
+      cancelling: false,
+      cancelError: '',
+      // QR countdown (10 min)
+      qrDeadline: null,
+      qrRemaining: '10:00',
+      qrRemainingMs: 600000,
+      qrExpired: false,
+      countdownTimer: null,
     }
   },
 
@@ -360,6 +546,16 @@ export default {
         ...o,
         hasLocation: this.hasLocationHint(o.order_detail)
       }))
+    },
+    confirmTotal() {
+      return this.confirmItems.reduce((sum, it) => {
+        const price = Number(it.editPrice) || 0
+        const qty = Number(it.qty) || 1
+        return sum + price * qty
+      }, 0)
+    },
+    qrUrgent() {
+      return this.qrRemainingMs <= 60000
     }
   },
 
@@ -369,6 +565,8 @@ export default {
 
   beforeUnmount() {
     if (this.countdownInterval) clearInterval(this.countdownInterval)
+    if (this.pollTimer) clearInterval(this.pollTimer)
+    if (this.countdownTimer) clearInterval(this.countdownTimer)
   },
 
   methods: {
@@ -500,6 +698,7 @@ export default {
           return
         }
         this.confirmItems = items
+        if (!this.payer.name.trim()) this.payer.name = items[0]?.name || ''
         this.confirmError = ''
         this.showConfirmModal = true
       } catch (err) {
@@ -522,6 +721,7 @@ export default {
           return
         }
         this.confirmItems = items
+        if (!this.payer.name.trim()) this.payer.name = items[0]?.name || ''
         this.confirmError = ''
         this.showConfirmModal = true
       } catch (err) {
@@ -541,7 +741,16 @@ export default {
       this.confirmError = ''
     },
 
-    async confirmSubmit() {
+    formatRupiah(n) {
+      return new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0))
+    },
+
+    // Submit orders + create the Pakasir transaction, then show the QR to pay.
+    async proceedToPayment() {
+      const name = this.payer.name.trim()
+      const whatsapp = this.payer.whatsapp.trim()
+      if (!name || !whatsapp || this.confirmTotal <= 0) return
+
       this.confirmingSubmit = true
       this.confirmError = ''
       try {
@@ -552,21 +761,262 @@ export default {
           price: item.editPrice || 0,
           qty: item.qty || 1,
         }))
-        const res = await share.submitShareOrder(this.shareId, { orders })
-        const count = res.data?.added_count || orders.length
+        const res = await share.checkout({
+          share_id: this.shareId,
+          guest_name: name,
+          guest_whatsapp: whatsapp,
+          payment_method: 'qris',
+          orders,
+        })
+        const p = res.data || {}
+        this.paymentOrderId = p.order_id
+        this.paymentTotal = p.total_payment || p.amount || this.confirmTotal
+        this.paymentExpiresAt = p.expires_at || null
+        this.paymentStatus = 'pending'
+        this.qrDataUrl = ''
+        if (p.payment_number) {
+          this.qrDataUrl = await QRCode.toDataURL(p.payment_number, { width: 260, margin: 1 })
+        }
+
         this.showConfirmModal = false
-        this.confirmItems = []
-        this.singleForm = { name: '', order_detail: '' }
-        this.bulkInput = ''
-        this.submitSuccessMsg = `${count} pesanan berhasil dikirim!`
-        this.submitSuccess = true
-        await this.loadOrders()
-        setTimeout(() => { this.submitSuccess = false }, 4000)
+        this.showPaymentModal = true
+        this.startCountdown10m(p.expires_at)
+        this.startPolling()
       } catch (err) {
-        this.confirmError = err.message || 'Gagal kirim. Coba lagi.'
+        this.confirmError = err.message || 'Gagal membuat pembayaran. Coba lagi.'
       } finally {
         this.confirmingSubmit = false
       }
+    },
+
+    startPolling() {
+      if (this.pollTimer) clearInterval(this.pollTimer)
+      this.pollTimer = setInterval(() => this.checkPaymentNow(true), 5000)
+    },
+
+    // QR valid 10 minutes (capped by the gateway's own expiry, whichever sooner).
+    startCountdown10m(pakasirExpiresAt) {
+      const tenMin = Date.now() + 10 * 60 * 1000
+      const pak = pakasirExpiresAt ? new Date(pakasirExpiresAt).getTime() : Infinity
+      this.qrDeadline = Math.min(tenMin, pak)
+      this.qrExpired = false
+      this.tickCountdown()
+      if (this.countdownTimer) clearInterval(this.countdownTimer)
+      this.countdownTimer = setInterval(this.tickCountdown, 1000)
+    },
+
+    tickCountdown() {
+      const diff = this.qrDeadline - Date.now()
+      this.qrRemainingMs = Math.max(0, diff)
+      if (diff <= 0) {
+        this.qrRemaining = '00:00'
+        this.handleQrExpired()
+        return
+      }
+      const m = Math.floor(diff / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      this.qrRemaining = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    },
+
+    handleQrExpired() {
+      if (this.countdownTimer) clearInterval(this.countdownTimer)
+      this.countdownTimer = null
+      if (this.pollTimer) clearInterval(this.pollTimer)
+      this.pollTimer = null
+      if (this.paymentStatus === 'completed') return
+      this.qrExpired = true
+      // Best-effort: void the stale transaction so it frees the slot.
+      if (this.paymentOrderId) share.cancelPayment(this.paymentOrderId).catch(() => {})
+    },
+
+    // Expired -> back to confirm modal (form intact) so guest can pay again.
+    retryFromExpired() {
+      this.resetPayment()
+      this.showConfirmModal = true
+    },
+
+    // Download the QR as a branded Listmak payment card (PNG).
+    async saveQr() {
+      if (!this.qrDataUrl) return
+      const W = 640, H = 940, scale = 2
+      const canvas = document.createElement('canvas')
+      canvas.width = W * scale
+      canvas.height = H * scale
+      const ctx = canvas.getContext('2d')
+      ctx.scale(scale, scale)
+
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, W, H)
+
+      // Header band
+      ctx.fillStyle = '#4f46e5'
+      ctx.fillRect(0, 0, W, 96)
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.font = '700 32px system-ui, -apple-system, sans-serif'
+      ctx.fillText('Listmak', W / 2, 48)
+      ctx.font = '400 16px system-ui, sans-serif'
+      ctx.fillText('Pembayaran QRIS', W / 2, 74)
+
+      // Listmak title
+      ctx.fillStyle = '#0f172a'
+      ctx.font = '600 21px system-ui, sans-serif'
+      ctx.fillText(this.truncateText(this.listmakData.title || 'Pesanan', 34), W / 2, 145)
+
+      // Amount
+      ctx.fillStyle = '#4f46e5'
+      ctx.font = '700 42px system-ui, sans-serif'
+      ctx.fillText('Rp ' + this.formatRupiah(this.paymentTotal), W / 2, 205)
+
+      // QR
+      const qr = await this.loadImage(this.qrDataUrl)
+      const qrSize = 320
+      const qx = (W - qrSize) / 2
+      const qy = 240
+      ctx.strokeStyle = '#e2e8f0'
+      ctx.lineWidth = 1
+      ctx.strokeRect(qx - 16, qy - 16, qrSize + 32, qrSize + 32)
+      ctx.drawImage(qr, qx, qy, qrSize, qrSize)
+
+      // Detail rows
+      const rows = [
+        ['Order ID', this.paymentOrderId],
+        ['Tanggal transaksi', this.formatDateTime(new Date())],
+        ['Berlaku sampai', this.formatDateTime(new Date(this.qrDeadline))],
+        ['Metode', 'QRIS'],
+      ]
+      let y = qy + qrSize + 60
+      ctx.font = '400 16px system-ui, sans-serif'
+      for (const [k, v] of rows) {
+        ctx.textAlign = 'left'
+        ctx.fillStyle = '#64748b'
+        ctx.fillText(k, 48, y)
+        ctx.textAlign = 'right'
+        ctx.fillStyle = '#0f172a'
+        ctx.fillText(String(v), W - 48, y)
+        y += 36
+      }
+
+      // Footer
+      ctx.textAlign = 'center'
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '400 13px system-ui, sans-serif'
+      ctx.fillText('Scan dengan aplikasi e-wallet atau m-banking apa saja', W / 2, H - 36)
+
+      canvas.toBlob((blob) => {
+        if (!blob) return
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `listmak-qris-${this.paymentOrderId}.png`
+        a.click()
+        URL.revokeObjectURL(a.href)
+      }, 'image/png')
+    },
+
+    loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => resolve(img)
+        img.onerror = reject
+        img.src = src
+      })
+    },
+
+    truncateText(s, n) {
+      return s.length > n ? s.slice(0, n - 1) + '…' : s
+    },
+
+    async checkPaymentNow(silent) {
+      if (!this.paymentOrderId || this.paymentStatus === 'completed') return
+      if (!silent) this.checkingStatus = true
+      try {
+        const res = await share.getPaymentStatus(this.paymentOrderId)
+        const status = res.data?.status
+        if (status === 'completed') {
+          this.paymentStatus = 'completed'
+          if (this.pollTimer) clearInterval(this.pollTimer)
+          if (this.countdownTimer) clearInterval(this.countdownTimer)
+          this.confirmItems = []
+          this.singleForm = { name: '', order_detail: '' }
+          this.bulkInput = ''
+          await this.loadOrders()
+        } else if (status === 'cancelled' || status === 'expired') {
+          // Voided elsewhere (admin cancel / gateway expiry) — close the QR.
+          this.handleRemoteCancelled()
+        }
+      } catch {
+        // transient poll failure — keep waiting
+      } finally {
+        this.checkingStatus = false
+      }
+    },
+
+    // Payment was cancelled/expired outside this screen (e.g. admin). Stop timers
+    // and show the cancelled notice; the form stays intact for a retry.
+    handleRemoteCancelled() {
+      if (this.pollTimer) clearInterval(this.pollTimer)
+      this.pollTimer = null
+      if (this.countdownTimer) clearInterval(this.countdownTimer)
+      this.countdownTimer = null
+      this.showCancelConfirm = false
+      this.paymentStatus = 'cancelled'
+    },
+
+    // Close after a successful payment — nothing to cancel.
+    finishPayment() {
+      this.payer = { name: '', whatsapp: '' }
+      this.resetPayment()
+    },
+
+    // Guest tapped "Batalkan" — pause polling and ask to confirm.
+    askCancel() {
+      if (this.pollTimer) clearInterval(this.pollTimer)
+      this.pollTimer = null
+      this.cancelError = ''
+      this.showCancelConfirm = true
+    },
+
+    // Guest changed their mind — hide confirm and resume polling.
+    dismissCancel() {
+      this.showCancelConfirm = false
+      this.cancelError = ''
+      if (this.paymentStatus !== 'completed') this.startPolling()
+    },
+
+    async confirmCancel() {
+      this.cancelling = true
+      this.cancelError = ''
+      try {
+        await share.cancelPayment(this.paymentOrderId)
+        // QR dibatalkan. Pesanan belum masuk list (baru tercatat saat bayar).
+        // Form tetap utuh — buka lagi modal konfirmasi biar guest bisa bayar ulang.
+        this.resetPayment()
+        this.showConfirmModal = true
+      } catch (err) {
+        // 409 = already paid: promote to success instead of leaving them stuck.
+        if (err.code === 409 || /lunas/i.test(err.message || '')) {
+          this.showCancelConfirm = false
+          this.paymentStatus = 'completed'
+          await this.loadOrders()
+        } else {
+          this.cancelError = err.message || 'Gagal membatalkan. Coba lagi.'
+        }
+      } finally {
+        this.cancelling = false
+      }
+    },
+
+    resetPayment() {
+      if (this.pollTimer) clearInterval(this.pollTimer)
+      this.pollTimer = null
+      if (this.countdownTimer) clearInterval(this.countdownTimer)
+      this.countdownTimer = null
+      this.showPaymentModal = false
+      this.showCancelConfirm = false
+      this.qrExpired = false
+      this.qrDataUrl = ''
+      this.paymentOrderId = ''
+      this.paymentStatus = 'pending'
     }
   }
 }
@@ -1318,4 +1768,220 @@ export default {
 .confirm-delete-btn i {
   font-size: 0.6875rem;
 }
+
+/* Price auto-set warning (confirm modal) */
+.price-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.price-warning i {
+  color: #f59e0b;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.price-warning span {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #fcd34d;
+}
+
+.price-warning strong {
+  color: #fde68a;
+}
+
+/* Payment: total + payer fields (inside confirm modal) */
+.pay-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: 0.75rem 0.875rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 0.75rem;
+  font-size: 0.9375rem;
+  color: #c7d2fe;
+}
+
+.pay-total-row strong {
+  font-size: 1.125rem;
+  color: #f1f5f9;
+}
+
+.payer-fields {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.wa-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: #86efac;
+}
+
+.wa-note i {
+  color: #22c55e;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* Payment: QR modal */
+.pay-sheet {
+  text-align: center;
+}
+
+.state-icon--green {
+  background: rgba(34, 197, 94, 0.15);
+  margin: 0 auto 0.5rem;
+}
+.state-icon--green i { color: #22c55e; }
+
+.pay-success {
+  padding: 1.5rem 0 0.5rem;
+  text-align: center;
+}
+
+/* Center the status icon in any pay-sheet panel (success/cancel/expired). */
+.pay-success .state-icon {
+  margin: 0 auto 0.75rem;
+}
+
+.qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 0.5rem auto 1rem;
+  width: fit-content;
+  min-width: 200px;
+  min-height: 200px;
+}
+
+.qr-img {
+  display: block;
+  width: 240px;
+  height: 240px;
+  max-width: 70vw;
+  max-height: 70vw;
+}
+
+.qr-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 240px;
+  height: 240px;
+  color: #64748b;
+  font-size: 1.75rem;
+}
+
+.pay-amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.pay-expiry {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+}
+
+.pay-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.pay-status-row i { color: #818cf8; }
+
+/* QR countdown */
+.qr-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 auto 0.75rem;
+  padding: 0.375rem 0.875rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: #c7d2fe;
+}
+
+.qr-countdown strong {
+  font-variant-numeric: tabular-nums;
+  color: #f1f5f9;
+}
+
+.qr-countdown--urgent {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.qr-countdown--urgent strong { color: #fecaca; }
+
+/* Order ID meta */
+.qr-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.qr-meta-label { color: #64748b; }
+
+.qr-meta-value {
+  font-family: monospace;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.5rem;
+}
+
+/* Save QR */
+.save-qr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.875rem auto 0;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.625rem;
+  color: #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.save-qr-btn:hover { background: rgba(255, 255, 255, 0.1); }
 </style>

@@ -51,8 +51,15 @@ definitions:
         type: string
       order_detail:
         type: string
+      paid_amount:
+        description: frozen amount paid via QR at payment time; unaffected by later
+          price edits
+        type: number
       paid_at:
         type: string
+      payment_id:
+        description: set when this order is covered by a guest Payment
+        type: integer
       price:
         type: number
       qty:
@@ -85,28 +92,6 @@ definitions:
         type: string
       title:
         type: string
-    type: object
-  models.SystemLog:
-    properties:
-      client_ip:
-        type: string
-      created_at:
-        type: string
-      error_msg:
-        type: string
-      id:
-        type: integer
-      latency:
-        type: string
-      method:
-        type: string
-      path:
-        type: string
-      request_id:
-        description: ID Unik per request
-        type: string
-      status_code:
-        type: integer
     type: object
   models.User:
     properties:
@@ -174,6 +159,89 @@ info:
   title: Listmak Service API
   version: "1.0"
 paths:
+  /admin/payments:
+    get:
+      parameters:
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: pending|completed|cancelled|expired
+        in: query
+        name: status
+        type: string
+      - description: order_id / guest name / whatsapp
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List payments with filters + revenue stats
+      tags:
+      - admin
+  /admin/payments/{orderId}:
+    get:
+      parameters:
+      - description: Invoice / order id
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Payment detail + covered orders
+      tags:
+      - admin
+  /admin/payments/{orderId}/cancel:
+    post:
+      parameters:
+      - description: Invoice / order id
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Cancel a pending payment (admin)
+      tags:
+      - admin
+  /admin/payments/{orderId}/reconcile:
+    post:
+      parameters:
+      - description: Invoice / order id
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Re-sync a payment status from Pakasir (authoritative)
+      tags:
+      - admin
   /auth/google/callback:
     get:
       consumes:
@@ -636,60 +704,6 @@ paths:
       summary: Get listmak by Date
       tags:
       - listmaks
-  /logs:
-    get:
-      consumes:
-      - application/json
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/models.SystemLog'
-                  type: array
-              type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      summary: Get all logs
-      tags:
-      - logs
-  /logs/{request_id}:
-    get:
-      consumes:
-      - application/json
-      parameters:
-      - description: Request ID
-        in: path
-        name: request_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.SystemLog'
-              type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      summary: Get log by request id
-      tags:
-      - logs
   /orders/{id}:
     delete:
       consumes:
@@ -795,6 +809,130 @@ paths:
       summary: Update order payment status
       tags:
       - orders
+  /payments/{orderId}/cancel:
+    post:
+      description: Public. Voids a still-pending Pakasir transaction when the guest
+        closes the QR. No-op if already cancelled; 409 if already paid.
+      parameters:
+      - description: Invoice / Pakasir order id
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Cancel a pending payment
+      tags:
+      - payments
+  /payments/{orderId}/status:
+    get:
+      description: Public polling endpoint. Returns DB status, falling back to a live
+        Pakasir query when still pending.
+      parameters:
+      - description: Invoice / Pakasir order id
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get payment status
+      tags:
+      - payments
+  /payments/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Public endpoint. Submits a guest's orders for a shared listmak
+        and creates a Pakasir transaction. Amount is computed server-side.
+      parameters:
+      - description: Checkout data
+        in: body
+        name: payload
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Guest checkout (submit orders + create payment)
+      tags:
+      - payments
+  /payments/webhook:
+    post:
+      consumes:
+      - application/json
+      description: Public. Verifies project/order/amount, confirms status via Pakasir
+        Transaction Detail API, then marks the payment (and its orders) paid idempotently.
+      parameters:
+      - description: Pakasir webhook payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Pakasir webhook receiver
+      tags:
+      - payments
   /share-links:
     post:
       consumes:

@@ -183,7 +183,17 @@
                                 }}</span
                             >
                         </div>
+                        <!-- QR-verified: locked, cannot toggle -->
+                        <div
+                            v-if="group.isQrPaid"
+                            class="paid-btn paid-btn--verified"
+                            title="Pembayaran QR terverifikasi otomatis oleh sistem"
+                        >
+                            <i class="pi pi-verified"></i>
+                            <span>Terverifikasi</span>
+                        </div>
                         <button
+                            v-else
                             class="paid-btn"
                             :class="{
                                 'paid-btn--paid':
@@ -228,6 +238,46 @@
                                 paidLabel(group)
                             }}</span>
                         </button>
+                    </div>
+
+                    <!-- Payment adjustment (QR-paid + OB changed price) -->
+                    <div
+                        v-if="group.isQrPaid"
+                        class="pay-adjust"
+                    >
+                        <div class="pay-adjust-row">
+                            <span class="pay-adjust-label">Sudah dibayar (QR)</span>
+                            <span class="pay-adjust-paid">Rp {{ formatRupiah(group.paidAmount) }}</span>
+                        </div>
+                        <div
+                            v-if="Math.round(group.adjustment) > 0"
+                            class="pay-adjust-row pay-adjust-row--short"
+                        >
+                            <span class="pay-adjust-label">
+                                <i class="pi pi-arrow-up"></i>
+                                Kurang bayar
+                            </span>
+                            <span class="pay-adjust-amount">Rp {{ formatRupiah(group.adjustment) }}</span>
+                        </div>
+                        <div
+                            v-else-if="Math.round(group.adjustment) < 0"
+                            class="pay-adjust-row pay-adjust-row--over"
+                        >
+                            <span class="pay-adjust-label">
+                                <i class="pi pi-arrow-down"></i>
+                                Lebih bayar
+                            </span>
+                            <span class="pay-adjust-amount">Rp {{ formatRupiah(-group.adjustment) }}</span>
+                        </div>
+                        <div
+                            v-else
+                            class="pay-adjust-row pay-adjust-row--ok"
+                        >
+                            <span class="pay-adjust-label">
+                                <i class="pi pi-check"></i>
+                                Pas, lunas
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Items — all shown, never collapsed -->
@@ -1814,6 +1864,19 @@ export default {
                             (o.qty || 1),
                     0,
                 );
+                // QR-paid: any order tied to a completed guest payment.
+                const isQrPaid = g.orders.some(
+                    (o) => o.payment_id,
+                );
+                // Frozen amount actually paid via QR (unaffected by OB price edits).
+                const paidAmount = g.orders.reduce(
+                    (sum, o) =>
+                        sum + (o.paid_amount || 0),
+                    0,
+                );
+                // >0 => underpaid (kurang bayar), <0 => overpaid (lebih bayar).
+                const adjustment =
+                    total - paidAmount;
                 return {
                     key,
                     name: g.name,
@@ -1821,6 +1884,9 @@ export default {
                     hasUnpriced,
                     allPaid,
                     total,
+                    isQrPaid,
+                    paidAmount,
+                    adjustment,
                     loading:
                         !!this.loadingGroups[key],
                 };
@@ -2354,6 +2420,17 @@ export default {
         },
 
         async togglePaid(group) {
+            // QR-verified payments are system-confirmed and cannot be toggled.
+            if (group.isQrPaid) {
+                this.$toast.add({
+                    severity: "info",
+                    summary: "Terverifikasi otomatis",
+                    detail:
+                        "Pembayaran via QR sudah diverifikasi sistem, status tidak bisa diubah.",
+                    life: 3000,
+                });
+                return;
+            }
             const key = group.key;
             this.loadingGroups = {
                 ...this.loadingGroups,
@@ -3451,6 +3528,65 @@ export default {
 .paid-btn--loading {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.paid-btn--verified {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    cursor: default;
+}
+
+/* Payment adjustment (QR-paid + OB price change) */
+.pay-adjust {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0.5rem 0 0.25rem;
+    padding: 0.625rem 0.75rem;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.5rem;
+}
+
+.pay-adjust-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+}
+
+.pay-adjust-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #94a3b8;
+}
+
+.pay-adjust-label i {
+    font-size: 0.75rem;
+}
+
+.pay-adjust-paid {
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.pay-adjust-row--short .pay-adjust-label,
+.pay-adjust-row--short .pay-adjust-amount {
+    color: #f87171;
+    font-weight: 700;
+}
+
+.pay-adjust-row--over .pay-adjust-label,
+.pay-adjust-row--over .pay-adjust-amount {
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+.pay-adjust-row--ok .pay-adjust-label {
+    color: #22c55e;
+    font-weight: 600;
 }
 
 /* Item list */

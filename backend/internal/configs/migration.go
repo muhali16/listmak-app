@@ -23,5 +23,10 @@ func AutoMigrate(db *gorm.DB) {
 	if err := db.AutoMigrate(models.ModelRegistry()...); err != nil {
 		log.Fatalf("AutoMigrate failed: %v", err)
 	}
+
+	// Payments: composite index for the background reconciler's hot query
+	// (pending older than cutoff). Created after AutoMigrate so the table exists.
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_payments_status_created ON payments (status, created_at) WHERE deleted_at IS NULL`)
+
 	log.Println("AutoMigrate completed")
 }

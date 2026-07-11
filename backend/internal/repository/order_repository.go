@@ -16,6 +16,7 @@ type OrderPriceUpdate struct {
 type OrderRepository interface {
 	GetOrdersByListmakId(listmakId uint, isPaid *bool, search string) ([]models.Order, error)
 	GetOrderById(id uint) (models.Order, error)
+	GetByPaymentID(paymentID uint) ([]models.Order, error)
 	CreateOrder(order models.Order) (models.Order, error)
 	CreateOrders(orders []models.Order) ([]models.Order, error)
 	UpdateOrder(order models.Order) (models.Order, error)
@@ -60,6 +61,14 @@ func (r *orderRepository) GetOrderById(id uint) (models.Order, error) {
 	return order, nil
 }
 
+func (r *orderRepository) GetByPaymentID(paymentID uint) ([]models.Order, error) {
+	var orders []models.Order
+	if err := r.db.Where("payment_id = ?", paymentID).Order("id asc").Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
 func (r *orderRepository) CreateOrder(order models.Order) (models.Order, error) {
 	if err := r.db.Create(&order).Error; err != nil {
 		return models.Order{}, err
@@ -98,8 +107,10 @@ func (r *orderRepository) UpdateOrdersPaidByName(listmakId uint, name string, is
 
 	var affected int64
 	err := r.db.Transaction(func(tx *gorm.DB) error {
+		// payment_id IS NULL: never let the manual paid-toggle flip an order that
+		// was auto-verified via QR payment.
 		result := tx.Model(&models.Order{}).
-			Where("listmak_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?))", listmakId, name).
+			Where("listmak_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?)) AND payment_id IS NULL", listmakId, name).
 			Updates(updates)
 		if result.Error != nil {
 			return result.Error

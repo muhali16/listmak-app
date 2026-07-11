@@ -9,6 +9,135 @@
     "host": "localhost:9001",
     "basePath": "/api/v1",
     "paths": {
+        "/admin/payments": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "List payments with filters + revenue stats",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "pending|completed|cancelled|expired",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "order_id / guest name / whatsapp",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payments/{orderId}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Payment detail + covered orders",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice / order id",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payments/{orderId}/cancel": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Cancel a pending payment (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice / order id",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/payments/{orderId}/reconcile": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Re-sync a payment status from Pakasir (authoritative)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice / order id",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/google/callback": {
             "get": {
                 "description": "Google callback",
@@ -741,98 +870,6 @@
                 }
             }
         },
-        "/logs": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "logs"
-                ],
-                "summary": "Get all logs",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/utils.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/models.SystemLog"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/logs/{request_id}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "logs"
-                ],
-                "summary": "Get log by request id",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Request ID",
-                        "name": "request_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/utils.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.SystemLog"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/orders/{id}": {
             "put": {
                 "description": "Update order details",
@@ -993,6 +1030,188 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/checkout": {
+            "post": {
+                "description": "Public endpoint. Submits a guest's orders for a shared listmak and creates a Pakasir transaction. Amount is computed server-side.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "Guest checkout (submit orders + create payment)",
+                "parameters": [
+                    {
+                        "description": "Checkout data",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "410": {
+                        "description": "Gone",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/webhook": {
+            "post": {
+                "description": "Public. Verifies project/order/amount, confirms status via Pakasir Transaction Detail API, then marks the payment (and its orders) paid idempotently.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "Pakasir webhook receiver",
+                "parameters": [
+                    {
+                        "description": "Pakasir webhook payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/{orderId}/cancel": {
+            "post": {
+                "description": "Public. Voids a still-pending Pakasir transaction when the guest closes the QR. No-op if already cancelled; 409 if already paid.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "Cancel a pending payment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice / Pakasir order id",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/payments/{orderId}/status": {
+            "get": {
+                "description": "Public polling endpoint. Returns DB status, falling back to a live Pakasir query when still pending.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "payments"
+                ],
+                "summary": "Get payment status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice / Pakasir order id",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -1515,8 +1734,16 @@
                 "order_detail": {
                     "type": "string"
                 },
+                "paid_amount": {
+                    "description": "frozen amount paid via QR at payment time; unaffected by later price edits",
+                    "type": "number"
+                },
                 "paid_at": {
                     "type": "string"
+                },
+                "payment_id": {
+                    "description": "set when this order is covered by a guest Payment",
+                    "type": "integer"
                 },
                 "price": {
                     "type": "number"
@@ -1565,39 +1792,6 @@
                 },
                 "title": {
                     "type": "string"
-                }
-            }
-        },
-        "models.SystemLog": {
-            "type": "object",
-            "properties": {
-                "client_ip": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "error_msg": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "latency": {
-                    "type": "string"
-                },
-                "method": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "request_id": {
-                    "description": "ID Unik per request",
-                    "type": "string"
-                },
-                "status_code": {
-                    "type": "integer"
                 }
             }
         },
