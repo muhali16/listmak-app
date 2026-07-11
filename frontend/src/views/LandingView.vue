@@ -141,7 +141,7 @@
 <script>
 import Button from 'primevue/button'
 import logoIcon from '../assets/logo/webp/listmak-icon-128.webp'
-import { loginWithGoogle, saveUser, isAuthenticated } from '../api/auth'
+import { saveUser, isAuthenticated } from '../api/auth'
 
 export default {
   name: 'LandingView',
@@ -195,8 +195,8 @@ export default {
       return `${0.15 + i * 0.12}s`
     },
     login() {
-      this.isLoading = true
-      loginWithGoogle()
+      // Go to the dedicated login page first; actual Google OAuth happens there.
+      this.$router.push('/login')
     },
     goApp() {
       this.$router.push('/today')

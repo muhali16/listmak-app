@@ -31,10 +31,37 @@
     <h2>Konten Anda</h2>
     <p>
       Data pesanan, daftar, dan kontak yang Anda buat tetap menjadi milik Anda.
-      Anda bertanggung jawab atas keakuratan data tersebut, termasuk perhitungan
-      dan penyelesaian pembayaran antar anggota tim — Listmak hanya alat bantu
-      pencatatan, bukan penyedia layanan pembayaran.
+      Anda bertanggung jawab atas keakuratan data tersebut, termasuk harga yang
+      dimasukkan dan perhitungan total pesanan.
     </p>
+
+    <h2>Pembayaran</h2>
+    <ul>
+      <li>
+        Pembayaran QRIS diproses oleh pihak ketiga, <strong>Pakasir</strong>
+        (dioperasikan PT. Geksa, berlisensi Bank Indonesia). Listmak memfasilitasi
+        pembuatan tagihan dan pencatatan status, <strong>bukan</strong> pemroses atau
+        penyimpan dana.
+      </li>
+      <li>
+        Jumlah yang ditagih dihitung dari harga yang Anda/anggota tim masukkan. Harga
+        sebagian dapat diperkirakan otomatis oleh AI — <strong>wajib diperiksa</strong>
+        sebelum membayar. Kesalahan harga di luar tanggung jawab Listmak.
+      </li>
+      <li>
+        Kode QR memiliki masa berlaku terbatas. Pembayaran hanya tercatat lunas setelah
+        terverifikasi oleh Pakasir.
+      </li>
+      <li>
+        <strong>Pengembalian dana (refund)</strong> — jika terjadi kelebihan bayar atau
+        pesanan batal setelah pembayaran, pengembalian dilakukan secara manual melalui
+        penyedia pembayaran, dan Anda akan dihubungi via WhatsApp. Listmak tidak menjamin
+        waktu penyelesaian refund.
+      </li>
+      <li>
+        Biaya layanan (fee) gateway, bila ada, mengikuti ketentuan Pakasir.
+      </li>
+    </ul>
 
     <h2>Ketersediaan</h2>
     <p>
