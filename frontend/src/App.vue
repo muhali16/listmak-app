@@ -35,8 +35,8 @@ export default {
   },
   data() {
     return {
-      // Initial guess from env; overwritten by the runtime setting from backend.
-      testing: import.meta.env.VITE_TESTING_MODE === 'true'
+      // Set from the backend runtime config on mount (see loadConfig).
+      testing: false
     }
   },
   computed: {

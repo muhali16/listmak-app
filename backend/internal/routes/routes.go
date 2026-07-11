@@ -40,5 +40,6 @@ func Routes(r *gin.Engine, systemLogRepo repository.SystemLogRepository) {
 
 	adminConfig := v1.Group("/admin")
 	adminConfig.Use(middlewares.AuthMiddleware(), middlewares.AdminOnly())
+	adminConfig.GET("/config", container.ConfigController.GetAdminConfig)
 	adminConfig.PUT("/config", container.ConfigController.UpdateConfig)
 }

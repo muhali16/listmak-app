@@ -97,8 +97,10 @@ func (fakeShareService) GetShareLink(string) (models.ShareLink, error) {
 
 type fakeAppConfig struct{ testing bool }
 
-func (f fakeAppConfig) TestingMode() bool       { return f.testing }
-func (fakeAppConfig) SetTestingMode(bool) error { return nil }
+func (f fakeAppConfig) TestingMode() bool            { return f.testing }
+func (fakeAppConfig) SetTestingMode(bool) error      { return nil }
+func (fakeAppConfig) FireworksModel() string         { return "" }
+func (fakeAppConfig) SetFireworksModel(string) error { return nil }
 
 func newCheckoutSvc(repo *fakePaymentRepo) *paymentService {
 	return &paymentService{

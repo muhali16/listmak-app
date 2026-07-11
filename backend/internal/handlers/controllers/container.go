@@ -39,15 +39,18 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	paymentLogRepo := repository.NewPaymentLogRepository(db)
 	appSettingRepo := repository.NewAppSettingRepository(db)
 
-	// Runtime config (admin-togglable testing mode). Seed default from env.
-	appConfig := services.NewAppConfig(appSettingRepo, os.Getenv("TESTING_MODE") == "true")
+	// Runtime config (admin-togglable). Seed defaults from env; DB values win.
+	appConfig := services.NewAppConfig(
+		appSettingRepo,
+		os.Getenv("TESTING_MODE") == "true",
+		os.Getenv("FIREWORKS_MODEL"),
+	)
 
-	// init AI service
+	// init AI service. Model is read at call time from AppConfig (runtime-tunable).
 	var aiService services.AIService
 	apiKey := os.Getenv("FIREWORKS_API_KEY")
-	model := os.Getenv("FIREWORKS_MODEL")
-	if apiKey != "" && model != "" {
-		aiService = services.NewFireworksAIService(apiKey, model, aiLogRepo)
+	if apiKey != "" && appConfig.FireworksModel() != "" {
+		aiService = services.NewFireworksAIService(apiKey, appConfig.FireworksModel, aiLogRepo)
 	} else {
 		aiService = services.NewNoopAIService()
 	}

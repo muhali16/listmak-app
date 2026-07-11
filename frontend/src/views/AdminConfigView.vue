@@ -48,6 +48,33 @@
         Perubahan berlaku langsung untuk semua pengguna. Data sandbox lama tidak dihapus —
         muncul lagi jika mode testing diaktifkan kembali.
       </p>
+
+      <!-- AI model -->
+      <div class="cfg-card" style="margin-top: 1rem">
+        <div class="cfg-info">
+          <div class="cfg-title-row">
+            <i class="pi pi-microchip-ai" style="color:#818cf8"></i>
+            <h2 class="cfg-title">Model AI (Fireworks)</h2>
+          </div>
+          <p class="cfg-desc">
+            Model yang dipakai untuk parsing pesanan, estimasi harga, dan ringkasan.
+            Ubah tanpa redeploy. API key tetap di server (.env).
+          </p>
+          <div class="cfg-model-row">
+            <input
+              v-model="model"
+              class="cfg-input"
+              type="text"
+              placeholder="accounts/fireworks/models/..."
+              :disabled="savingModel"
+            />
+            <button class="cfg-save-btn" :disabled="savingModel || !model.trim()" @click="saveModel">
+              <i v-if="savingModel" class="pi pi-spin pi-spinner"></i>
+              <span>{{ savingModel ? 'Menyimpan...' : 'Simpan' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </template>
 
     <Toast position="top-center" />
@@ -65,8 +92,10 @@ export default {
   data() {
     return {
       testing: false,
+      model: '',
       loading: false,
       saving: false,
+      savingModel: false,
     }
   },
 
@@ -78,8 +107,9 @@ export default {
     async load() {
       this.loading = true
       try {
-        const res = await admin.getConfig()
+        const res = await admin.getAdminConfig()
         this.testing = !!res.data?.testing_mode
+        this.model = res.data?.fireworks_model || ''
       } catch (err) {
         this.$toast.add({ severity: 'error', summary: 'Gagal', detail: err.message, life: 3000 })
       } finally {
@@ -94,7 +124,7 @@ export default {
         : 'Nonaktifkan mode testing? Aplikasi kembali ke mode produksi.')) return
       this.saving = true
       try {
-        const res = await admin.updateConfig(next)
+        const res = await admin.updateConfig({ testing_mode: next })
         this.testing = !!res.data?.testing_mode
         this.$toast.add({
           severity: 'success',
@@ -106,6 +136,19 @@ export default {
         this.$toast.add({ severity: 'error', summary: 'Gagal', detail: err.message, life: 3000 })
       } finally {
         this.saving = false
+      }
+    },
+
+    async saveModel() {
+      this.savingModel = true
+      try {
+        const res = await admin.updateConfig({ fireworks_model: this.model.trim() })
+        this.model = res.data?.fireworks_model || ''
+        this.$toast.add({ severity: 'success', summary: 'Tersimpan', detail: 'Model AI diperbarui', life: 3000 })
+      } catch (err) {
+        this.$toast.add({ severity: 'error', summary: 'Gagal', detail: err.message, life: 3000 })
+      } finally {
+        this.savingModel = false
       }
     },
   },
@@ -206,4 +249,32 @@ export default {
   color: #64748b;
 }
 .cfg-note i { color: #64748b; margin-top: 0.1rem; flex-shrink: 0; }
+
+.cfg-model-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+
+.cfg-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #f1f5f9;
+  font-size: 0.8125rem;
+  font-family: monospace;
+}
+.cfg-input:focus { outline: none; border-color: rgba(99, 102, 241, 0.5); }
+
+.cfg-save-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 0.5rem;
+  color: #818cf8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cfg-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

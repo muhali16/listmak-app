@@ -85,11 +85,11 @@ export default {
     return apiCall(`/admin/payments/${encodeURIComponent(orderId)}/cancel`, { method: 'POST' })
   },
 
-  // App config (testing mode)
-  getConfig() {
-    return apiCall('/config')
+  // App config (runtime settings)
+  getAdminConfig() {
+    return apiCall('/admin/config')
   },
-  updateConfig(testingMode) {
-    return apiCall('/admin/config', { method: 'PUT', body: { testing_mode: testingMode } })
+  updateConfig(patch) {
+    return apiCall('/admin/config', { method: 'PUT', body: patch })
   }
 }

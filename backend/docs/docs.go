@@ -16,6 +16,23 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/admin/config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Full runtime config (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
             "put": {
                 "consumes": [
                     "application/json"
@@ -26,10 +43,10 @@ const docTemplate = `{
                 "tags": [
                     "admin"
                 ],
-                "summary": "Toggle testing mode (admin)",
+                "summary": "Update runtime config (admin)",
                 "parameters": [
                     {
-                        "description": "Config",
+                        "description": "Config (partial)",
                         "name": "payload",
                         "in": "body",
                         "required": true,

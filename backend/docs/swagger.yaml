@@ -164,11 +164,22 @@ info:
   version: "1.0"
 paths:
   /admin/config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Full runtime config (admin)
+      tags:
+      - admin
     put:
       consumes:
       - application/json
       parameters:
-      - description: Config
+      - description: Config (partial)
         in: body
         name: payload
         required: true
@@ -182,7 +193,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/utils.Response'
-      summary: Toggle testing mode (admin)
+      summary: Update runtime config (admin)
       tags:
       - admin
   /admin/payments:

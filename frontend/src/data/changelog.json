@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.4.1",
+    "date": "2026-07-12",
+    "entries": [
+      {
+        "type": "feat",
+        "message": "Model AI kini bisa diganti admin lewat halaman Konfigurasi, tanpa perlu deploy ulang"
+      },
+      {
+        "type": "chore",
+        "message": "Rapikan konfigurasi environment: pindahkan setelan runtime ke pengaturan aplikasi, sisakan secret di server"
+      }
+    ]
+  },
+  {
     "version": "1.4.0",
     "date": "2026-07-12",
     "entries": [

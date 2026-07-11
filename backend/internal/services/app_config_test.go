@@ -14,33 +14,28 @@ func (r *fakeSettingRepo) Set(key, value string) error {
 }
 
 func TestAppConfig(t *testing.T) {
-	// Unset -> falls back to the env default.
+	// Unset -> falls back to the env defaults.
 	repo := &fakeSettingRepo{store: map[string]string{}}
-	if NewAppConfig(repo, true).TestingMode() != true {
+	if NewAppConfig(repo, true, "m1").TestingMode() != true {
 		t.Fatal("empty store should use default=true")
 	}
-	if NewAppConfig(repo, false).TestingMode() != false {
-		t.Fatal("empty store should use default=false")
+	if NewAppConfig(repo, false, "m1").FireworksModel() != "m1" {
+		t.Fatal("empty store should use default model")
 	}
 
-	// Stored value wins over the default.
-	repo2 := &fakeSettingRepo{store: map[string]string{"testing_mode": "true"}}
-	if NewAppConfig(repo2, false).TestingMode() != true {
-		t.Fatal("stored true should override default=false")
+	// Stored values win over defaults.
+	repo2 := &fakeSettingRepo{store: map[string]string{"testing_mode": "true", "fireworks_model": "m2"}}
+	c2 := NewAppConfig(repo2, false, "m1")
+	if !c2.TestingMode() || c2.FireworksModel() != "m2" {
+		t.Fatal("stored values should override defaults")
 	}
 
-	// SetTestingMode updates both the live cache and the store.
-	c := NewAppConfig(&fakeSettingRepo{store: map[string]string{}}, false)
-	if err := c.SetTestingMode(true); err != nil {
-		t.Fatalf("set: %v", err)
+	// Setters update both the live cache and the store.
+	c := NewAppConfig(&fakeSettingRepo{store: map[string]string{}}, false, "m1")
+	if err := c.SetTestingMode(true); err != nil || !c.TestingMode() {
+		t.Fatalf("SetTestingMode: %v / %v", err, c.TestingMode())
 	}
-	if !c.TestingMode() {
-		t.Fatal("cache not updated after SetTestingMode(true)")
-	}
-	if err := c.SetTestingMode(false); err != nil {
-		t.Fatalf("set: %v", err)
-	}
-	if c.TestingMode() {
-		t.Fatal("cache not updated after SetTestingMode(false)")
+	if err := c.SetFireworksModel("m3"); err != nil || c.FireworksModel() != "m3" {
+		t.Fatalf("SetFireworksModel: %v / %v", err, c.FireworksModel())
 	}
 }
