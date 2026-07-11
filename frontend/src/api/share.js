@@ -115,5 +115,26 @@ export default {
     return apiCall(`/view-shares/${viewId}`, {
       method: 'GET'
     })
+  },
+
+  // --- PAYMENTS (guest checkout, public) ---
+
+  // Submit orders + create Pakasir transaction in one call. Amount is computed
+  // server-side. Returns { order_id, total_payment, payment_number (QRIS), ... }.
+  checkout(data) {
+    return apiCall('/payments/checkout', {
+      method: 'POST',
+      body: data
+    })
+  },
+
+  // Poll payment status by invoice/order id.
+  getPaymentStatus(orderId) {
+    return apiCall(`/payments/${orderId}/status`, { method: 'GET' })
+  },
+
+  // Cancel a still-pending payment (guest closed the QR).
+  cancelPayment(orderId) {
+    return apiCall(`/payments/${orderId}/cancel`, { method: 'POST' })
   }
 }

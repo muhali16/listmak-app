@@ -94,6 +94,30 @@
                         >
                     </router-link>
                     <router-link
+                        to="/admin/payments"
+                        class="nav-subitem"
+                        :class="{
+                            active:
+                                $route.path ===
+                                '/admin/payments',
+                        }"
+                    >
+                        <i class="pi pi-wallet"></i>
+                        <span>Pembayaran</span>
+                    </router-link>
+                    <router-link
+                        to="/admin/config"
+                        class="nav-subitem"
+                        :class="{
+                            active:
+                                $route.path ===
+                                '/admin/config',
+                        }"
+                    >
+                        <i class="pi pi-cog"></i>
+                        <span>Konfigurasi</span>
+                    </router-link>
+                    <router-link
                         to="/admin/price-catalog"
                         class="nav-subitem"
                         :class="{
@@ -264,10 +288,10 @@ export default {
 .sidebar {
     display: none;
     position: fixed;
-    top: 0;
+    top: var(--testing-banner-h, 0px);
     left: 0;
     width: 240px;
-    height: 100vh;
+    height: calc(100vh - var(--testing-banner-h, 0px));
     background: #1e293b;
     border-right: 1px solid
         rgba(255, 255, 255, 0.08);

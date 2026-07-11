@@ -8,9 +8,9 @@ import (
 )
 
 type ListmakRepository interface {
-	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error)
+	GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint, isSandbox *bool) ([]models.Listmak, int64, error)
 	GetListmakById(id uint) (models.Listmak, error)
-	GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error)
+	GetListmakByDate(date time.Time, userId uint, isSandbox *bool) ([]models.Listmak, error)
 	CreateListmak(listmak models.Listmak) (models.Listmak, error)
 	UpdateListmak(listmak models.Listmak) (models.Listmak, error)
 	DeleteListmak(id uint) error
@@ -24,13 +24,16 @@ func NewListmakRepository(db *gorm.DB) ListmakRepository {
 	return &listmakRepository{db: db}
 }
 
-func (r *listmakRepository) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error) {
+func (r *listmakRepository) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint, isSandbox *bool) ([]models.Listmak, int64, error) {
 	var listmaks []models.Listmak
 	var total int64
 
 	query := r.db.Model(&models.Listmak{})
 	if userId > 0 {
 		query = query.Where("created_by = ?", userId)
+	}
+	if isSandbox != nil {
+		query = query.Where("is_sandbox = ?", *isSandbox)
 	}
 
 	if status != "" {
@@ -64,10 +67,15 @@ func (r *listmakRepository) GetListmakById(id uint) (models.Listmak, error) {
 	return listmak, nil
 }
 
-func (r *listmakRepository) GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error) {
+func (r *listmakRepository) GetListmakByDate(date time.Time, userId uint, isSandbox *bool) ([]models.Listmak, error) {
 	var listmaks []models.Listmak
 	dateStr := date.Format("2006-01-02")
-	if err := r.db.Preload("Orders").Preload("User").Preload("ShareLinks", "is_active = ? AND expires_at > ?", true, time.Now()).Where("DATE(date) = ? AND created_by = ?", dateStr, userId).Find(&listmaks).Error; err != nil {
+	q := r.db.Preload("Orders").Preload("User").Preload("ShareLinks", "is_active = ? AND expires_at > ?", true, time.Now()).
+		Where("DATE(date) = ? AND created_by = ?", dateStr, userId)
+	if isSandbox != nil {
+		q = q.Where("is_sandbox = ?", *isSandbox)
+	}
+	if err := q.Find(&listmaks).Error; err != nil {
 		return nil, err
 	}
 	return listmaks, nil

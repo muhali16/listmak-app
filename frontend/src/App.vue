@@ -1,5 +1,6 @@
 <template>
-  <div class="dark-mode">
+  <div class="dark-mode" :class="{ 'testing-on': testing }">
+    <TestingBanner v-if="testing" />
     <OfflineModal />
     <Toast position="top-center" />
     
@@ -21,6 +22,7 @@ import Toast from 'primevue/toast'
 import OfflineModal from './components/OfflineModal.vue'
 import BottomNav from './components/BottomNav.vue'
 import Sidebar from './components/Sidebar.vue'
+import TestingBanner from './components/TestingBanner.vue'
 
 export default {
   name: 'App',
@@ -28,11 +30,35 @@ export default {
     Toast,
     OfflineModal,
     BottomNav,
-    Sidebar
+    Sidebar,
+    TestingBanner
+  },
+  data() {
+    return {
+      // Set from the backend runtime config on mount (see loadConfig).
+      testing: false
+    }
   },
   computed: {
     showNavigation() {
       return !this.$route.meta.hideNav
+    }
+  },
+  mounted() {
+    this.loadConfig()
+  },
+  methods: {
+    async loadConfig() {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+      try {
+        const res = await fetch(`${base}/config`, { credentials: 'include' })
+        const data = await res.json()
+        if (data?.data && typeof data.data.testing_mode === 'boolean') {
+          this.testing = data.data.testing_mode
+        }
+      } catch {
+        // keep env default if config fetch fails
+      }
     }
   }
 }
@@ -42,6 +68,13 @@ export default {
 .dark-mode {
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Testing mode: reserve space for the fixed banner. The CSS var inherits into
+   child components (Sidebar reads it to offset its fixed top). */
+.dark-mode.testing-on {
+  --testing-banner-h: 2.25rem;
+  padding-top: 2.25rem;
 }
 
 .main-content {

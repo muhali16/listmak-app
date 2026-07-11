@@ -66,5 +66,30 @@ export default {
   },
   deletePriceCatalog(id) {
     return apiCall(`/admin/price-catalog/${id}`, { method: 'DELETE' })
+  },
+
+  // Payments
+  getPayments(page = 1, status = '', search = '') {
+    const params = new URLSearchParams({ page })
+    if (status) params.set('status', status)
+    if (search) params.set('search', search)
+    return apiCall(`/admin/payments?${params}`)
+  },
+  getPaymentDetail(orderId) {
+    return apiCall(`/admin/payments/${encodeURIComponent(orderId)}`)
+  },
+  reconcilePayment(orderId) {
+    return apiCall(`/admin/payments/${encodeURIComponent(orderId)}/reconcile`, { method: 'POST' })
+  },
+  cancelPayment(orderId) {
+    return apiCall(`/admin/payments/${encodeURIComponent(orderId)}/cancel`, { method: 'POST' })
+  },
+
+  // App config (runtime settings)
+  getAdminConfig() {
+    return apiCall('/admin/config')
+  },
+  updateConfig(patch) {
+    return apiCall('/admin/config', { method: 'PUT', body: patch })
   }
 }

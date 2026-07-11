@@ -37,15 +37,15 @@ type AIService interface {
 
 type fireworksAIService struct {
 	apiKey  string
-	model   string
+	modelFn func() string // runtime model, read from AppConfig
 	client  *http.Client
 	logRepo repository.AILogRepository
 }
 
-func NewFireworksAIService(apiKey, model string, logRepo repository.AILogRepository) AIService {
+func NewFireworksAIService(apiKey string, modelFn func() string, logRepo repository.AILogRepository) AIService {
 	return &fireworksAIService{
 		apiKey:  apiKey,
-		model:   model,
+		modelFn: modelFn,
 		client:  &http.Client{Timeout: 10 * time.Second},
 		logRepo: logRepo,
 	}
@@ -85,7 +85,7 @@ func (s *fireworksAIService) ExtractVendor(requestID string, orderDetail string,
 	)
 
 	reqBody, _ := json.Marshal(map[string]any{
-		"model": s.model,
+		"model": s.modelFn(),
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
@@ -167,7 +167,7 @@ func (s *fireworksAIService) ExtractVendorsBatch(requestID string, orders []mode
 	)
 
 	reqBody, _ := json.Marshal(map[string]any{
-		"model": s.model,
+		"model": s.modelFn(),
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
@@ -251,10 +251,10 @@ func (s *fireworksAIService) SummarizeOrders(requestID string, orders []models.O
 	start := time.Now()
 
 	type orderInput struct {
-		Name        string  `json:"name"`
-		OrderDetail string  `json:"order_detail"`
-		VendorName  string  `json:"vendor_name,omitempty"`
-		Price       *int    `json:"price"` // null = belum ada harga
+		Name        string `json:"name"`
+		OrderDetail string `json:"order_detail"`
+		VendorName  string `json:"vendor_name,omitempty"`
+		Price       *int   `json:"price"` // null = belum ada harga
 	}
 	orderList := make([]orderInput, len(orders))
 	for i, o := range orders {
@@ -321,7 +321,7 @@ func (s *fireworksAIService) SummarizeOrders(requestID string, orders []models.O
 	}
 
 	reqBody, _ := json.Marshal(map[string]any{
-		"model": s.model,
+		"model": s.modelFn(),
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
@@ -406,7 +406,7 @@ func (s *fireworksAIService) EstimatePrice(requestID string, itemDetail string, 
 	)
 
 	reqBody, _ := json.Marshal(map[string]any{
-		"model": s.model,
+		"model": s.modelFn(),
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
@@ -506,7 +506,7 @@ func (s *fireworksAIService) ParseOrders(requestID string, orders []ParseOrderIn
 	)
 
 	reqBody, _ := json.Marshal(map[string]any{
-		"model": s.model,
+		"model": s.modelFn(),
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
@@ -583,7 +583,7 @@ func (s *fireworksAIService) writeLog(requestID string, orderID *uint, input, ou
 		OrderID:   orderID,
 		Input:     input,
 		Output:    output,
-		Model:     s.model,
+		Model:     s.modelFn(),
 		Provider:  "fireworks",
 		LatencyMs: latencyMs,
 		Status:    status,

@@ -11,5 +11,8 @@ func ModelRegistry() []interface{} {
 		&AILog{},
 		&PriceCatalog{},
 		&ListmakSummary{},
+		&Payment{},
+		&PaymentLog{},
+		&AppSetting{},
 	}
 }

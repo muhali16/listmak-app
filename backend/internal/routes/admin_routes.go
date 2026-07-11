@@ -19,5 +19,10 @@ func AdminRoutes(r *gin.RouterGroup, ac controllers.AdminController) {
 		admin.DELETE("/price-catalog/:id", ac.DeletePriceCatalog)
 		admin.DELETE("/view-shares/:id", ac.DeleteViewShare)
 		admin.DELETE("/summaries/listmak/:listmakId", ac.DeleteSummary)
+
+		admin.GET("/payments", ac.GetPayments)
+		admin.GET("/payments/:orderId", ac.GetPaymentDetail)
+		admin.POST("/payments/:orderId/reconcile", ac.ReconcilePayment)
+		admin.POST("/payments/:orderId/cancel", ac.CancelPayment)
 	}
 }

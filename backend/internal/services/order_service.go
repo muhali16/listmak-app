@@ -23,6 +23,7 @@ type OrderService interface {
 	GetFoodSuggestions(listmakID uint, query string) ([]string, error)
 	UpdateVendorName(id uint, vendorName string) error
 	ScanVendors(listmakID uint, requestID string) ([]models.Order, error)
+	RecalcListmakTotals(listmakId uint)
 }
 
 type orderService struct {
@@ -50,7 +51,7 @@ func (s *orderService) CreateOrder(order models.Order) (models.Order, error) {
 	if err != nil {
 		return models.Order{}, err
 	}
-	s.updateListmakTotals(order.ListmakID)
+	s.RecalcListmakTotals(order.ListmakID)
 
 	return newOrder, nil
 }
@@ -69,7 +70,7 @@ func (s *orderService) CreateOrdersBulk(listmakId uint, orders []models.Order, r
 		return 0, nil, err
 	}
 
-	s.updateListmakTotals(listmakId)
+	s.RecalcListmakTotals(listmakId)
 
 	go func(created []models.Order, reqID string) {
 		var unscanned []models.Order
@@ -110,7 +111,7 @@ func (s *orderService) UpdateOrder(order models.Order) (models.Order, error) {
 		return models.Order{}, err
 	}
 
-	s.updateListmakTotals(existing.ListmakID)
+	s.RecalcListmakTotals(existing.ListmakID)
 	return updatedOrder, nil
 }
 
@@ -133,7 +134,7 @@ func (s *orderService) UpdateOrderPaidStatus(id uint, isPaid bool) (models.Order
 		return models.Order{}, err
 	}
 
-	s.updateListmakTotals(order.ListmakID)
+	s.RecalcListmakTotals(order.ListmakID)
 	return order, nil
 }
 
@@ -151,7 +152,7 @@ func (s *orderService) UpdateOrdersPaidByName(listmakId uint, name string, isPai
 		return 0, ErrNoOrdersMatched
 	}
 
-	s.updateListmakTotals(listmakId)
+	s.RecalcListmakTotals(listmakId)
 	return count, nil
 }
 
@@ -201,12 +202,14 @@ func (s *orderService) DeleteOrder(id uint) error {
 		return err
 	}
 
-	s.updateListmakTotals(listmakId)
+	s.RecalcListmakTotals(listmakId)
 	return nil
 }
 
-// Helper to recalculate totals
-func (s *orderService) updateListmakTotals(listmakId uint) {
+// RecalcListmakTotals recomputes and persists the listmak aggregate columns
+// (total_orders, total_amount, paid_amount) from its current orders. Exported so
+// the payment flow can resync totals after marking orders paid on webhook.
+func (s *orderService) RecalcListmakTotals(listmakId uint) {
 	// Get all orders
 	orders, err := s.orderRepo.GetOrdersByListmakId(listmakId, nil, "")
 	if err != nil {
