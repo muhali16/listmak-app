@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.3.1",
+    "date": "2026-07-12",
+    "entries": [
+      {
+        "type": "feat",
+        "message": "Halaman QR pembayaran kini menampilkan rincian: total pesanan, biaya layanan, dan total dibayar"
+      },
+      {
+        "type": "feat",
+        "message": "Tombol masuk di halaman depan membuka halaman login terlebih dahulu"
+      },
+      {
+        "type": "docs",
+        "message": "Kebijakan Privasi dan Syarat & Ketentuan diperbarui untuk pembayaran QRIS"
+      }
+    ]
+  },
+  {
     "version": "1.3.0",
     "date": "2026-07-12",
     "entries": [

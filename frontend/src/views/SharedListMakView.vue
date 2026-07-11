@@ -394,7 +394,25 @@
               <div v-else class="qr-loading"><i class="pi pi-spin pi-spinner"></i></div>
             </div>
 
-            <div class="pay-amount">Rp {{ formatRupiah(paymentTotal) }}</div>
+            <!-- Payment breakdown -->
+            <div class="pay-breakdown">
+              <div class="pay-brk-row">
+                <span>Total harga pesanan</span>
+                <span>Rp {{ formatRupiah(paymentAmount) }}</span>
+              </div>
+              <div class="pay-brk-row">
+                <span>Biaya layanan (Pakasir)</span>
+                <span>Rp {{ formatRupiah(paymentFee) }}</span>
+              </div>
+              <div class="pay-brk-row pay-brk-row--total">
+                <span>Total dibayar</span>
+                <span>Rp {{ formatRupiah(paymentTotal) }}</span>
+              </div>
+              <p class="pay-brk-note">
+                Biaya layanan mengikuti tarif payment gateway Pakasir.
+                <a href="https://pakasir.com/p/pricing" target="_blank" rel="noopener">Lihat tarif</a>
+              </p>
+            </div>
 
             <div class="qr-meta">
               <span class="qr-meta-label">Order ID</span>
@@ -499,6 +517,8 @@ export default {
       paymentTotal: 0,
       paymentExpiresAt: null,
       paymentStatus: 'pending',
+      paymentAmount: 0,
+      paymentFee: 0,
       pollTimer: null,
       checkingStatus: false,
       showCancelConfirm: false,
@@ -770,6 +790,8 @@ export default {
         })
         const p = res.data || {}
         this.paymentOrderId = p.order_id
+        this.paymentAmount = p.amount || 0
+        this.paymentFee = p.fee || 0
         this.paymentTotal = p.total_payment || p.amount || this.confirmTotal
         this.paymentExpiresAt = p.expires_at || null
         this.paymentStatus = 'pending'
@@ -1898,6 +1920,47 @@ export default {
   font-weight: 700;
   color: #f1f5f9;
 }
+
+/* Payment breakdown */
+.pay-breakdown {
+  text-align: left;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  margin: 0.25rem auto 0;
+  max-width: 20rem;
+}
+
+.pay-brk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  padding: 0.25rem 0;
+}
+
+.pay-brk-row span:last-child { color: #cbd5e1; font-weight: 600; }
+
+.pay-brk-row--total {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.9375rem;
+  color: #f1f5f9;
+}
+.pay-brk-row--total span { color: #f1f5f9 !important; font-weight: 700; }
+.pay-brk-row--total span:last-child { font-size: 1.05rem; }
+
+.pay-brk-note {
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0.5rem 0 0;
+}
+.pay-brk-note a { color: #818cf8; text-decoration: none; }
+.pay-brk-note a:hover { text-decoration: underline; }
 
 .pay-expiry {
   font-size: 0.75rem;
