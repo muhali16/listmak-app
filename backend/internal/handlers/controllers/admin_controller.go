@@ -181,8 +181,8 @@ func (ac *adminController) GetAllListmaks(c *gin.Context) {
 		}
 	}
 
-	// userId=0 returns all users
-	data, total, err := ac.listmakRepo.GetAllListmaks(page, limit, status, startDate, endDate, 0)
+	// userId=0 returns all users; isSandbox=nil returns both real + sandbox (admin sees all).
+	data, total, err := ac.listmakRepo.GetAllListmaks(page, limit, status, startDate, endDate, 0, nil)
 	if err != nil {
 		utils.SendResponse(c, http.StatusInternalServerError, false, "Failed to get listmaks", nil)
 		return

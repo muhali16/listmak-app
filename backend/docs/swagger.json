@@ -9,6 +9,40 @@
     "host": "localhost:9001",
     "basePath": "/api/v1",
     "paths": {
+        "/admin/config": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Toggle testing mode (admin)",
+                "parameters": [
+                    {
+                        "description": "Config",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/payments": {
             "get": {
                 "produces": [
@@ -253,6 +287,25 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Public runtime config (testing mode)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -1672,6 +1725,10 @@
                 },
                 "id": {
                     "type": "integer"
+                },
+                "is_sandbox": {
+                    "description": "created while app in testing mode; hidden in production, badged in admin",
+                    "type": "boolean"
                 },
                 "orders": {
                     "type": "array",

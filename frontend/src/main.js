@@ -26,6 +26,7 @@ import AdminSystemLogsView from './views/AdminSystemLogsView.vue'
 import AdminPriceCatalogView from './views/AdminPriceCatalogView.vue'
 import AdminListmaksView from './views/AdminListmaksView.vue'
 import AdminPaymentsView from './views/AdminPaymentsView.vue'
+import AdminConfigView from './views/AdminConfigView.vue'
 import ChangelogView from './views/ChangelogView.vue'
 import LandingView from './views/LandingView.vue'
 import PrivacyView from './views/PrivacyView.vue'
@@ -162,6 +163,12 @@ const routes = [
     path: '/admin/payments',
     name: 'AdminPayments',
     component: AdminPaymentsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin/config',
+    name: 'AdminConfig',
+    component: AdminConfigView,
     meta: { requiresAuth: true }
   },
   {

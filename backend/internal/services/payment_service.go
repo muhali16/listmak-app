@@ -93,6 +93,7 @@ type paymentService struct {
 	shareService ShareService
 	pakasir      PakasirClient
 	logFn        PaymentLogFunc
+	appConfig    AppConfig
 }
 
 func NewPaymentService(
@@ -101,6 +102,7 @@ func NewPaymentService(
 	shareService ShareService,
 	pakasir PakasirClient,
 	logFn PaymentLogFunc,
+	appConfig AppConfig,
 ) PaymentService {
 	return &paymentService{
 		paymentRepo:  paymentRepo,
@@ -108,6 +110,7 @@ func NewPaymentService(
 		shareService: shareService,
 		pakasir:      pakasir,
 		logFn:        logFn,
+		appConfig:    appConfig,
 	}
 }
 
@@ -248,7 +251,8 @@ func (s *paymentService) Checkout(in CheckoutInput) (models.Payment, error) {
 		Status:        "pending",
 		ExpiresAt:     expiresAt,
 		ItemsSnapshot: snapshot,
-		IsSandbox:     pakResp.IsSandbox,
+		// Sandbox if the gateway says so OR the app is in testing mode.
+		IsSandbox: pakResp.IsSandbox || s.appConfig.TestingMode(),
 	}
 
 	// Persist a pending payment only. Orders are created when the payment

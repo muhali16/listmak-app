@@ -97,10 +97,10 @@ func (f *fakeListmakRepo) GetListmakById(id uint) (models.Listmak, error) {
 	return f.listmak, nil
 }
 
-func (f *fakeListmakRepo) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint) ([]models.Listmak, int64, error) {
+func (f *fakeListmakRepo) GetAllListmaks(page, limit int, status string, startDate, endDate *time.Time, userId uint, isSandbox *bool) ([]models.Listmak, int64, error) {
 	return nil, 0, nil
 }
-func (f *fakeListmakRepo) GetListmakByDate(date time.Time, userId uint) ([]models.Listmak, error) {
+func (f *fakeListmakRepo) GetListmakByDate(date time.Time, userId uint, isSandbox *bool) ([]models.Listmak, error) {
 	return nil, nil
 }
 func (f *fakeListmakRepo) CreateListmak(l models.Listmak) (models.Listmak, error) { return l, nil }

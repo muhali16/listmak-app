@@ -1,5 +1,27 @@
 [
   {
+    "version": "1.4.0",
+    "date": "2026-07-12",
+    "entries": [
+      {
+        "type": "feat",
+        "message": "Mode Testing: admin bisa mengaktifkan/menonaktifkan lewat halaman Konfigurasi"
+      },
+      {
+        "type": "feat",
+        "message": "Saat mode testing, data baru (listmak, pesanan, pembayaran) ditandai sandbox dan hanya muncul di mode testing"
+      },
+      {
+        "type": "feat",
+        "message": "Di mode produksi data sandbox disembunyikan dari pengguna, tapi tetap terlihat dan berlabel di halaman admin"
+      },
+      {
+        "type": "feat",
+        "message": "Banner kuning 'TESTING' sticky di semua halaman saat aplikasi dalam mode testing"
+      }
+    ]
+  },
+  {
     "version": "1.3.0",
     "date": "2026-07-12",
     "entries": [

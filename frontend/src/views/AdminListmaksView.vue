@@ -47,7 +47,10 @@
           <div class="lm-main">
             <div class="lm-info">
               <div class="lm-date">{{ formatDate(lm.date) }}</div>
-              <div class="lm-title">{{ lm.title || 'Tanpa judul' }}</div>
+              <div class="lm-title">
+                {{ lm.title || 'Tanpa judul' }}
+                <span v-if="lm.is_sandbox" class="lm-sandbox">Sandbox</span>
+              </div>
               <div class="lm-meta">
                 <span v-if="lm.user" class="lm-user">
                   <i class="pi pi-user"></i> {{ lm.user.name }}
@@ -823,4 +826,16 @@ export default {
 @media (min-width: 768px) {
   .admin-container { padding: 1.5rem 2rem; padding-bottom: 2rem; }
 }
+.lm-sandbox {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  vertical-align: middle;
+}
+
 </style>

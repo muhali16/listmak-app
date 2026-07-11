@@ -7,6 +7,7 @@ import (
 	_ "github.com/muhali16/listmak-service/docs"
 	"github.com/muhali16/listmak-service/internal/configs"
 	"github.com/muhali16/listmak-service/internal/handlers/controllers"
+	"github.com/muhali16/listmak-service/internal/handlers/middlewares"
 	"github.com/muhali16/listmak-service/internal/repository"
 	"github.com/muhali16/listmak-service/pkg/utils"
 	swaggerFiles "github.com/swaggo/files"
@@ -35,4 +36,9 @@ func Routes(r *gin.Engine, systemLogRepo repository.SystemLogRepository) {
 	SummaryRoutes(v1, container.SummaryController)
 	AIRoutes(v1, container.AIController)
 	PaymentRoutes(v1, container.PaymentController)
+	v1.GET("/config", container.ConfigController.GetPublicConfig)
+
+	adminConfig := v1.Group("/admin")
+	adminConfig.Use(middlewares.AuthMiddleware(), middlewares.AdminOnly())
+	adminConfig.PUT("/config", container.ConfigController.UpdateConfig)
 }

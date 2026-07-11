@@ -10,6 +10,10 @@ definitions:
         type: string
       id:
         type: integer
+      is_sandbox:
+        description: created while app in testing mode; hidden in production, badged
+          in admin
+        type: boolean
       orders:
         items:
           $ref: '#/definitions/models.Order'
@@ -159,6 +163,28 @@ info:
   title: Listmak Service API
   version: "1.0"
 paths:
+  /admin/config:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Config
+        in: body
+        name: payload
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Toggle testing mode (admin)
+      tags:
+      - admin
   /admin/payments:
     get:
       parameters:
@@ -315,6 +341,18 @@ paths:
       summary: Get user authenticated
       tags:
       - auth
+  /config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Public runtime config (testing mode)
+      tags:
+      - config
   /listmaks:
     get:
       consumes:

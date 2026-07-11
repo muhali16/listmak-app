@@ -52,6 +52,16 @@
         </router-link>
         <div class="admin-popup-divider"></div>
         <router-link
+          to="/admin/config"
+          class="admin-popup-item"
+          :class="{ active: $route.path === '/admin/config' }"
+          @click="adminMenuOpen = false"
+        >
+          <i class="pi pi-cog"></i>
+          <span>Konfigurasi</span>
+        </router-link>
+        <div class="admin-popup-divider"></div>
+        <router-link
           to="/admin/price-catalog"
           class="admin-popup-item"
           :class="{ active: $route.path === '/admin/price-catalog' }"

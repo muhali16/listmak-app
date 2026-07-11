@@ -35,12 +35,30 @@ export default {
   },
   data() {
     return {
+      // Initial guess from env; overwritten by the runtime setting from backend.
       testing: import.meta.env.VITE_TESTING_MODE === 'true'
     }
   },
   computed: {
     showNavigation() {
       return !this.$route.meta.hideNav
+    }
+  },
+  mounted() {
+    this.loadConfig()
+  },
+  methods: {
+    async loadConfig() {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+      try {
+        const res = await fetch(`${base}/config`, { credentials: 'include' })
+        const data = await res.json()
+        if (data?.data && typeof data.data.testing_mode === 'boolean') {
+          this.testing = data.data.testing_mode
+        }
+      } catch {
+        // keep env default if config fetch fails
+      }
     }
   }
 }

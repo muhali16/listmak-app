@@ -95,12 +95,18 @@ func (fakeShareService) GetShareLink(string) (models.ShareLink, error) {
 	return models.ShareLink{ListmakID: 1}, nil
 }
 
+type fakeAppConfig struct{ testing bool }
+
+func (f fakeAppConfig) TestingMode() bool       { return f.testing }
+func (fakeAppConfig) SetTestingMode(bool) error { return nil }
+
 func newCheckoutSvc(repo *fakePaymentRepo) *paymentService {
 	return &paymentService{
 		paymentRepo:  repo,
 		orderService: fakeOrderService{},
 		shareService: fakeShareService{},
 		pakasir:      &fakePakasir{project: "proj"},
+		appConfig:    fakeAppConfig{},
 	}
 }
 

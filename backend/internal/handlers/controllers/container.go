@@ -22,6 +22,7 @@ type Container struct {
 	SummaryController SummaryController
 	AIController      AIController
 	PaymentController PaymentController
+	ConfigController  ConfigController
 }
 
 func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *Container {
@@ -36,6 +37,10 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	catalogRepo := repository.NewPriceCatalogRepository(db)
 	paymentRepo := repository.NewPaymentRepository(db)
 	paymentLogRepo := repository.NewPaymentLogRepository(db)
+	appSettingRepo := repository.NewAppSettingRepository(db)
+
+	// Runtime config (admin-togglable testing mode). Seed default from env.
+	appConfig := services.NewAppConfig(appSettingRepo, os.Getenv("TESTING_MODE") == "true")
 
 	// init AI service
 	var aiService services.AIService
@@ -49,7 +54,7 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 
 	// init services
 	userService := services.NewUserService(userRepo)
-	listmakService := services.NewListmakService(listmakRepo)
+	listmakService := services.NewListmakService(listmakRepo, appConfig)
 	orderService := services.NewOrderService(orderRepo, listmakRepo, aiService)
 	shareService := services.NewShareService(shareRepo, viewShareRepo, listmakRepo)
 	summaryService := services.NewSummaryService(summaryRepo, catalogRepo, orderRepo, aiService)
@@ -81,7 +86,7 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 		os.Getenv("PAKASIR_API_KEY"),
 		paymentLogFn,
 	)
-	paymentService := services.NewPaymentService(paymentRepo, orderService, shareService, pakasirClient, paymentLogFn)
+	paymentService := services.NewPaymentService(paymentRepo, orderService, shareService, pakasirClient, paymentLogFn, appConfig)
 
 	// Background reconciler: settle payments still pending after 10 min (complete
 	// if actually paid, otherwise cancel so a saved/screenshot QR can't be paid
@@ -109,6 +114,7 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 	summaryController := NewSummaryController(summaryService)
 	aiController := NewAIController(aiService)
 	paymentController := NewPaymentController(paymentService)
+	configController := NewConfigController(appConfig)
 
 	return &Container{
 		UserController:    userController,
@@ -120,5 +126,6 @@ func InitContainer(db *gorm.DB, systemLogRepo repository.SystemLogRepository) *C
 		SummaryController: summaryController,
 		AIController:      aiController,
 		PaymentController: paymentController,
+		ConfigController:  configController,
 	}
 }

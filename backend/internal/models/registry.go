@@ -13,5 +13,6 @@ func ModelRegistry() []interface{} {
 		&ListmakSummary{},
 		&Payment{},
 		&PaymentLog{},
+		&AppSetting{},
 	}
 }

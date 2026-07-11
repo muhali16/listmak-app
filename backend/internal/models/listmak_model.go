@@ -16,6 +16,7 @@ type Listmak struct {
 	TotalAmount float64        `gorm:"type:decimal(12,2);default:0" json:"total_amount"`
 	PaidAmount  float64        `gorm:"type:decimal(12,2);default:0" json:"paid_amount"`
 	Status      string         `gorm:"type:varchar(20);default:'active'" json:"status"` // 'active', 'completed', 'cancelled'
+	IsSandbox   bool           `gorm:"default:false;index" json:"is_sandbox"`           // created while app in testing mode; hidden in production, badged in admin
 	CreatedAt   time.Time      `gorm:"<-:create" json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`

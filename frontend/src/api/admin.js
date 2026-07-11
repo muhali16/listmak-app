@@ -83,5 +83,13 @@ export default {
   },
   cancelPayment(orderId) {
     return apiCall(`/admin/payments/${encodeURIComponent(orderId)}/cancel`, { method: 'POST' })
+  },
+
+  // App config (testing mode)
+  getConfig() {
+    return apiCall('/config')
+  },
+  updateConfig(testingMode) {
+    return apiCall('/admin/config', { method: 'PUT', body: { testing_mode: testingMode } })
   }
 }

@@ -106,6 +106,18 @@
                         <span>Pembayaran</span>
                     </router-link>
                     <router-link
+                        to="/admin/config"
+                        class="nav-subitem"
+                        :class="{
+                            active:
+                                $route.path ===
+                                '/admin/config',
+                        }"
+                    >
+                        <i class="pi pi-cog"></i>
+                        <span>Konfigurasi</span>
+                    </router-link>
+                    <router-link
                         to="/admin/price-catalog"
                         class="nav-subitem"
                         :class="{
