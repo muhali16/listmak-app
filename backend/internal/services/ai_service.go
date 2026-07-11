@@ -251,10 +251,10 @@ func (s *fireworksAIService) SummarizeOrders(requestID string, orders []models.O
 	start := time.Now()
 
 	type orderInput struct {
-		Name        string  `json:"name"`
-		OrderDetail string  `json:"order_detail"`
-		VendorName  string  `json:"vendor_name,omitempty"`
-		Price       *int    `json:"price"` // null = belum ada harga
+		Name        string `json:"name"`
+		OrderDetail string `json:"order_detail"`
+		VendorName  string `json:"vendor_name,omitempty"`
+		Price       *int   `json:"price"` // null = belum ada harga
 	}
 	orderList := make([]orderInput, len(orders))
 	for i, o := range orders {

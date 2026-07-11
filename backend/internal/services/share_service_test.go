@@ -14,7 +14,7 @@ import (
 
 // fakeShareLinkRepo stores share-links in memory.
 type fakeShareLinkRepo struct {
-	active map[uint]*models.ShareLink // keyed by listmak_id
+	active map[uint]*models.ShareLink  // keyed by listmak_id
 	store  map[string]models.ShareLink // keyed by share_id
 }
 
